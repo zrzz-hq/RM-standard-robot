@@ -94,6 +94,8 @@ void oled_display_on(void)
 {
     oled_write_byte(0x8d, OLED_CMD);
     oled_write_byte(0x14, OLED_CMD);
+		oled_write_byte(0xa4, OLED_CMD);    //disable entire dispaly on
+    oled_write_byte(0xa6, OLED_CMD);    //disable inverse display on
     oled_write_byte(0xaf, OLED_CMD);
 }
 
@@ -138,7 +140,6 @@ void oled_refresh_gram_partly(uint8_t x1,uint8_t y1,uint8_t x2,uint8_t y2)
 						oled_nop();
 						oled_write_byte(OLED_GRAM[n][i], OLED_DATA);
         }
-//				oled_set_pos(Max_Column-1,i);
 				oled_nop();
     }
 }
@@ -468,18 +469,14 @@ void oled_init(void)
     oled_write_byte(0x40, OLED_CMD);    //set vcom deselect level
     oled_write_byte(0x20, OLED_CMD);    //set page addressing mode
     oled_write_byte(0x02, OLED_CMD);    //
-    oled_write_byte(0x8d, OLED_CMD);    //set charge pump enable/disable
-    oled_write_byte(0x14, OLED_CMD);    //charge pump disable
-    oled_write_byte(0xa4, OLED_CMD);    //disable entire dispaly on
-    oled_write_byte(0xa6, OLED_CMD);    //disable inverse display on
-    oled_write_byte(0xaf, OLED_CMD);    //turn on oled panel
-
-    //oled_write_byte(0xaf, OLED_CMD);    //display on
+    //oled_write_byte(0x8d, OLED_CMD);    //set charge pump enable/disable
+    //oled_write_byte(0x14, OLED_CMD);    //charge pump disable
+    //oled_write_byte(0xa4, OLED_CMD);    //disable entire dispaly on
+    //oled_write_byte(0xa6, OLED_CMD);    //disable inverse display on
+    //oled_write_byte(0xaf, OLED_CMD);    //turn on oled panel
 
     oled_clear(Pen_Clear);
     oled_set_pos(0, 0);
 		oled_LOGO();
-		oled_refresh_gram();
-		//vTaskDelay(1000);
 
 }

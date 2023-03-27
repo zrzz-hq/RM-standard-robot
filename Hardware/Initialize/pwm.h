@@ -19,8 +19,10 @@ void TIM8_Init(void);
 void TIM2_Init(void);
 void TIM4_Init(void);
 void TIM5_Init(void);
+void TIM6_Init(void);
 
 //ÍÓÂÝÒÇÎÂ¶ÈPID
 void TIM3_Init(uint16_t arr, uint16_t psc);
+void TIM6_Register_CallBack(void(*CallBack)(void));
 
 #endif

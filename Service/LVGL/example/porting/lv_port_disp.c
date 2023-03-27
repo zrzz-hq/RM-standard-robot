@@ -121,7 +121,7 @@ void lv_port_disp_init(void)
 static void disp_init(void)
 {
     /*Init the oled*/
-		//oled_init();
+		oled_init();
 }
 
 volatile bool disp_flush_enabled = true;
@@ -159,7 +159,6 @@ static void disp_flush(lv_disp_drv_t * disp_drv, const lv_area_t * area, lv_colo
                 color_p++;
             }
         }
-				oled_refresh_gram();
     }
 
     /*IMPORTANT!!!

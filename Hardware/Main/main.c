@@ -51,7 +51,7 @@ int main(void)
 	Power_24V_Init();
 
 	USART3_Init();
-	USART6_Init();
+	//USART6_Init();
 	UART7_Init();
 	UART8_Init();
 	

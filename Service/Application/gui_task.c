@@ -208,24 +208,29 @@ void del_main_menu()
 
 void gui_start()
 {
-		//打开oled显示
-		oled_init();
+		//绘制启动图标，打开显示
+		oled_clear(Pen_Clear);
+		oled_LOGO();
+		oled_display_on();
+		oled_refresh_gram();
 		//创建主菜单
 		create_main_menu();
 		//恢复任务
-		vTaskResume(GuiTask_Handler);
 		gui.is_gui_start = 1;
-		
+		vTaskResume(GuiTask_Handler);
 }
 
 void gui_stop()
 {
-		//关闭oled显示
-		oled_display_off();
-		//删除主菜单，释放资源
-		del_main_menu();
 		//挂起任务
 		vTaskSuspend(GuiTask_Handler);
+		//删除主菜单，释放资源
+		del_main_menu();
+		//关闭oled显示
+		oled_clear(Pen_Clear);
+		oled_refresh_gram();
+		oled_display_off();
+		//清零标志位
 		gui.is_gui_start = 0;
 }
 
@@ -249,7 +254,10 @@ void gui_task(void *pvParameters)
 		while(1)
 		{
 				lv_task_handler();
-				vTaskDelay(10);
+				taskENTER_CRITICAL();
+				oled_refresh_gram();
+				taskEXIT_CRITICAL();
+				vTaskDelay(25);
 		}
 }
 

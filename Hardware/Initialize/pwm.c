@@ -1,5 +1,7 @@
 #include "pwm.h"
 
+void(*TIM6_CallBack)(void);
+
 void TIM3_Init(uint16_t arr, uint16_t psc)
 {
     TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStructure;
@@ -430,4 +432,44 @@ void TIM5_Init(void)
   /* TIM5 enable counter */
   TIM_Cmd(TIM5, ENABLE);
 }
+
+void TIM6_Init()
+{
+		TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStructure;
+		NVIC_InitTypeDef NVIC_InitStructure;
+
+		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM6,ENABLE); 
+
+		TIM_TimeBaseInitStructure.TIM_Period = PWM_RESOLUTION-1; 
+		TIM_TimeBaseInitStructure.TIM_Prescaler=TIM_PSC_APB1; 
+		TIM_TimeBaseInitStructure.TIM_CounterMode=TIM_CounterMode_Up; 
+		TIM_TimeBaseInitStructure.TIM_ClockDivision=TIM_CKD_DIV4; 
+
+		TIM_TimeBaseInit(TIM6,&TIM_TimeBaseInitStructure);
+
+		TIM_ITConfig(TIM6,TIM_IT_Update,ENABLE); 
+		//TIM_Cmd(TIM6,ENABLE); 
+
+		NVIC_InitStructure.NVIC_IRQChannel=TIM6_DAC_IRQn ; 
+		NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority=0; 
+		NVIC_InitStructure.NVIC_IRQChannelSubPriority=0;
+		NVIC_InitStructure.NVIC_IRQChannelCmd=ENABLE;
+		NVIC_Init(&NVIC_InitStructure);
+}
+
+void TIM6_Register_CallBack(void(*CallBack)(void))
+{
+		TIM6_CallBack = CallBack;
+}
+
+void TIM6_DAC_IRQHandler()
+{
+		if(TIM_GetITStatus(TIM6,TIM_IT_Update)==SET&&TIM6_CallBack) 
+		{
+				//不要在这里直接写代码，请调用TIM6_Register_CallBack注册回调函数
+				TIM6_CallBack();
+		}
+		TIM_ClearITPendingBit(TIM6,TIM_IT_Update); 
+}
+
 

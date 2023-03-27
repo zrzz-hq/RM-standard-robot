@@ -28,17 +28,17 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-#define START_TASK_PRIO 2
+#define START_TASK_PRIO 3
 #define START_STK_SIZE 256
 static TaskHandle_t StartTask_Handler;
 
-#define USER_TASK_PRIO 4
+#define USER_TASK_PRIO 5
 #define USER_STK_SIZE 128
 static TaskHandle_t UserTask_Handler;
 
-#define OSKER_TASK_PRIO 6
-#define OSKER_STK_SIZE 512
-static TaskHandle_t OskerTask_Handler;
+//#define OSKER_TASK_PRIO 6
+//#define OSKER_STK_SIZE 512
+//static TaskHandle_t OskerTask_Handler;
 
 #define JUDGE_TASK_PRIO 10
 #define JUDGE_STK_SIZE 512

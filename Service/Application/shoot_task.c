@@ -65,6 +65,9 @@ void Shoot_Add_Variable(Shoot_t* Shoot_Variable)
 		Add_Variable_By_Name_In_Task("Shoot Bullet Time Limit",&Shoot_Variable->Shoot_Bullet_Time_Limit,VAR_TYPE_UINT16,0);
 		Add_Variable_By_Name_In_Task("Shoot Stall Time Limit",&Shoot_Variable->Shoot_Stall_Time_Limit,VAR_TYPE_UINT16,0);
 		Add_Variable_By_Name_In_Task("Trigger Motor Min Speed",&Shoot_Variable->Trigger_Motor_Min_Speed,VAR_TYPE_INT8,0);
+		Add_Variable_By_Name_In_Task("Default Shoot Speed Limit",&Shoot_Variable->Default_Shoot_Speed_Limit,VAR_TYPE_UINT16,0);
+		Add_Variable_By_Name_In_Task("Default Shoot Freq Limit",&Shoot_Variable->Default_Shoot_Freq_Limit,VAR_TYPE_UINT8,0);
+		//Add_Variable_By_Name_In_Task("Max Shoot Freq",&Shoot_Variable->Max_Shoot_Freq,VAR_TYPE_UINT8,0);
 	
 }
 
@@ -230,18 +233,18 @@ void Shoot_Pid_Calc(Shoot_t* Pid_Calc)
 {
 		if(Pid_Calc->Shoot_Mode!=SHOOT_STOP)
 		{
-				int8_t Factor = Pid_Calc->Fric_Reverse_Flag?-1:1;
-				Pid_Calc->Fric_Motor_Current_Send[0] = pid_calc_linear(&Pid_Calc->Fric_Motor_Pid[0],Pid_Calc->Fric_Motor_Speed_Get[0],Factor*-Pid_Calc->Fric_Motor_Speed_Set);
-				Pid_Calc->Fric_Motor_Current_Send[1] = pid_calc_linear(&Pid_Calc->Fric_Motor_Pid[1],Pid_Calc->Fric_Motor_Speed_Get[1],Factor*Pid_Calc->Fric_Motor_Speed_Set);
+				
 				Pid_Calc->Trigger_Motor_Current_Send = pid_calc_linear(&Pid_Calc->Trigger_Motor_Pid,Pid_Calc->Trigger_Motor_Speed_Get,Pid_Calc->Trigger_Motor_Speed_Set);
 		}
 		else
 		{
-				Pid_Calc->Fric_Motor_Current_Send[0] = 0;
-				Pid_Calc->Fric_Motor_Current_Send[1] = 0;
+//				Pid_Calc->Fric_Motor_Current_Send[0] = 0;
+//				Pid_Calc->Fric_Motor_Current_Send[1] = 0;
 				Pid_Calc->Trigger_Motor_Current_Send = 0;
 		}
-		
+		int8_t Factor = Pid_Calc->Fric_Reverse_Flag?-1:1;
+		Pid_Calc->Fric_Motor_Current_Send[0] = pid_calc_linear(&Pid_Calc->Fric_Motor_Pid[0],Pid_Calc->Fric_Motor_Speed_Get[0],Factor*-Pid_Calc->Fric_Motor_Speed_Set);
+		Pid_Calc->Fric_Motor_Current_Send[1] = pid_calc_linear(&Pid_Calc->Fric_Motor_Pid[1],Pid_Calc->Fric_Motor_Speed_Get[1],Factor*Pid_Calc->Fric_Motor_Speed_Set);
 		
 }
 
@@ -271,16 +274,62 @@ void Shoot_Init(Shoot_t* Data_Init)
 		Data_Init->Unload_Bullet_Speed = UNLOAD_BULLET_SPEED;
 		Data_Init->Shoot_Stall_Time_Limit = SHOOT_STALL_TIME_LIMIT;
 		Data_Init->Trigger_Motor_Low_Speed_Time_Limit = TRIGGER_MOTOR_LOW_SPEED_TIME_LIMIT;
+		Data_Init->Default_Shoot_Freq_Limit = DEFAULT_SHOOT_FREQ_LIMIT;
+		Data_Init->Default_Shoot_Speed_Limit = DEFAULT_SHOOT_SPEED_LIMIT;
+		//Data_Init->Max_Shoot_Freq = MAX_SHOOT_FREQ;
 }
 
 uint8_t Get_Shoot_Freq_From_Judge_System(Shoot_t* Get_Shoot_Freq)
 {
-		return 1;
+		if(Get_Shoot_Freq->Judge_Robot_ID!=0)
+		{
+				if(Get_Shoot_Freq->Judge_Shoot_Heat_Percent >= 95.0f)
+				{
+						return 0;
+				}
+				if((Get_Shoot_Freq->Judge_Shoot_Heat_Percent >= 0) && (Get_Shoot_Freq->Judge_Shoot_Heat_Percent < 60))
+				{
+						if(Get_Shoot_Freq->Judge_Shoot_Cooling_Limit <=50)
+							return 3;
+						else if(Get_Shoot_Freq->Judge_Shoot_Cooling_Limit <=100)
+							return 8;
+						else if(Get_Shoot_Freq->Judge_Shoot_Cooling_Limit <=150)
+							return 12;
+						else if(Get_Shoot_Freq->Judge_Shoot_Cooling_Limit <=280)
+							return 18;
+						else if(Get_Shoot_Freq->Judge_Shoot_Cooling_Limit <=400)
+							return 26;	
+				}
+				else if((Get_Shoot_Freq->Judge_Shoot_Heat_Percent >= 60) 
+						 && (Get_Shoot_Freq->Judge_Shoot_Heat_Percent <= (100.0f-Get_Shoot_Freq->Judge_Shoot_Cool_Percent)))
+				{
+						if(Get_Shoot_Freq->Judge_Shoot_Cooling_Limit <=50)
+							return 1;
+						else if(Get_Shoot_Freq->Judge_Shoot_Cooling_Limit <=100)
+							return 2;
+						else if(Get_Shoot_Freq->Judge_Shoot_Cooling_Limit <=150)
+							return 3;
+						else if(Get_Shoot_Freq->Judge_Shoot_Cooling_Limit <=280)
+							return 4;
+						else if(Get_Shoot_Freq->Judge_Shoot_Cooling_Limit <=400)
+							return 5;
+				}
+				else if(Get_Shoot_Freq->Judge_Shoot_Heat_Percent > (100.0f-Get_Shoot_Freq->Judge_Shoot_Cool_Percent))
+				{
+						return (Get_Shoot_Freq->Judge_Shoot_Cooling_Limit / 10);
+				}
+		}
+		return Get_Shoot_Freq->Default_Shoot_Freq_Limit;
 }
 
 float Get_Fric_Speed_From_Judge_System(Shoot_t* Get_Fric_Speed)
 {
-		return 10;
+		if(Get_Fric_Speed->Judge_Robot_ID!=0)
+		{
+			//TODO 判断有没有超射速
+			return Get_Fric_Speed->Judge_Shoot_Speed_Limit;
+		}
+		return Get_Fric_Speed->Default_Shoot_Speed_Limit;
 }
 
 
@@ -297,7 +346,11 @@ void Shoot_Control_Data_Set(Shoot_t* Control_Data_Set)
 		else if(Control_Data_Set->Shoot_Mode == SHOOT_BULLET)
 		{
 				uint8_t Freq_Set = Get_Shoot_Freq_From_Judge_System(Control_Data_Set);
-				Control_Data_Set->Trigger_Motor_Speed_Set = Freq_Set;
+				//给射频加上正负号，与加载弹丸速度的正负号一致
+				if(Control_Data_Set->Need_Shoot_Count>=0)
+						Control_Data_Set->Trigger_Motor_Speed_Set = Freq_Set;
+				else
+						Control_Data_Set->Trigger_Motor_Speed_Set = -Freq_Set;
 		}
 		else if(Control_Data_Set->Shoot_Mode == SHOOT_STALL)
 		{
@@ -308,74 +361,43 @@ void Shoot_Control_Data_Set(Shoot_t* Control_Data_Set)
 		{
 				Control_Data_Set->Fric_Motor_Speed_Set = Get_Fric_Speed_From_Judge_System(Control_Data_Set);
 		}
+		else
+		{
+				Control_Data_Set->Fric_Motor_Speed_Set = 0;
+		}
 }
 
 void Shoot_Data_Update(Shoot_t* Data_Update)
 {
+		//电机数据更新
 		Data_Update->Fric_Motor_Speed_Get[0]=Data_Update->Fric_Motor_Msg_Get[0]->Speed/60*PI*Data_Update->Fric_Wheel_Diameter;
 		Data_Update->Fric_Motor_Speed_Get[1]=Data_Update->Fric_Motor_Msg_Get[1]->Speed/60*PI*Data_Update->Fric_Wheel_Diameter;
 		Data_Update->Trigger_Motor_Speed_Get=Data_Update->Trigger_Motor_Msg_Get->Speed/60/36*Data_Update->Bullets_Per_Rotation;
 		Data_Update->Shoot_Key = Shoot_Key_Read();
-	
-//		Data_Update->Shoot_Speed_Limit = Data_Update->Shoot_Judge_Msg_Get->Judge_game_robot_status.shooter_heat0_speed_limit;
-//		Data_Update->Shoot_Cooling_Rate = Data_Update->Shoot_Judge_Msg_Get->Judge_game_robot_status.shooter_heat0_cooling_rate;
-//		Data_Update->Shoot_Cooling_Limit = Data_Update->Shoot_Judge_Msg_Get->Judge_game_robot_status.shooter_heat0_cooling_limit;
-//		Data_Update->Shoot_Heat = Data_Update->Shoot_Judge_Msg_Get->Judge_power_heat_data.shooter_heat0;
-//		Data_Update->Shoot_Speed = Data_Update->Shoot_Judge_Msg_Get->Judge_shoot_data.bullet_speed;
-//		Data_Update->Shoot_Freq = Data_Update->Shoot_Judge_Msg_Get->Judge_shoot_data.bullet_freq;
-//		Data_Update->Shoot_Heat_Percent = (((float)Data_Update->Shoot_Heat_Now / (float)Data_Update->Shoot_Heat_Limit) * 100.00f);
-//		Data_Update->Shoot_Cool_Percent = (((float)Data_Update->Shoot_Cool_Now / (float)Data_Update->Shoot_Heat_Limit) * 100.00f);
+		//裁判系统数据更新
+		Data_Update->Judge_Robot_ID = Data_Update->Shoot_Judge_Msg_Get->Judge_game_robot_status.robot_id;
+		if(Data_Update->Judge_Robot_ID!=0)
+		{
+				//判断是否是英雄，如果是英雄使用42mm发射机构数据
+				if(Data_Update->Judge_Robot_ID == Red_Hero||Data_Update->Judge_Robot_ID == Blue_Hero)
+				{
+						Data_Update->Judge_Shoot_Cooling_Limit = Data_Update->Shoot_Judge_Msg_Get->Judge_game_robot_status.shooter_id1_42mm_cooling_limit;
+						Data_Update->Judge_Shoot_Cooling_Rate = Data_Update->Shoot_Judge_Msg_Get->Judge_game_robot_status.shooter_id1_42mm_cooling_rate;
+						Data_Update->Judge_Shoot_Cooling_Heat = Data_Update->Shoot_Judge_Msg_Get->Judge_power_heat_data.shooter_id1_42mm_cooling_heat;
+						Data_Update->Judge_Shoot_Speed_Limit = Data_Update->Shoot_Judge_Msg_Get->Judge_game_robot_status.shooter_id1_42mm_speed_limit;
+				}
+				else
+				{
+						Data_Update->Judge_Shoot_Cooling_Limit = Data_Update->Shoot_Judge_Msg_Get->Judge_game_robot_status.shooter_id1_17mm_cooling_limit;
+						Data_Update->Judge_Shoot_Cooling_Rate = Data_Update->Shoot_Judge_Msg_Get->Judge_game_robot_status.shooter_id1_17mm_cooling_rate;
+						Data_Update->Judge_Shoot_Cooling_Heat = Data_Update->Shoot_Judge_Msg_Get->Judge_power_heat_data.shooter_id1_17mm_cooling_heat;
+						Data_Update->Judge_Shoot_Speed_Limit = Data_Update->Shoot_Judge_Msg_Get->Judge_game_robot_status.shooter_id1_17mm_speed_limit;
+				}
+				Data_Update->Judge_Shoot_Heat_Percent = (float)Data_Update->Judge_Shoot_Cooling_Heat/Data_Update->Judge_Shoot_Cooling_Limit;
+				Data_Update->Judge_Shoot_Cool_Percent = (float)Data_Update->Judge_Shoot_Cooling_Rate/Data_Update->Judge_Shoot_Cooling_Limit;
+		}
+		
 }
-
-//int Shoot_Heat_Limit_Get(float Robot_Heat_Percent,float Robot_Cool_Percent,int Robot_Heat_Limit,int Robot_Cool_Limit)
-//{
-//	if(Robot_Heat_Percent >= 95.0f)
-//	{
-//		return 0;
-//	}
-//	if((Robot_Heat_Percent >= 0) && (Robot_Heat_Percent < 60))
-//	{
-//		if(Robot_Heat_Limit <=50)
-//			return 3;
-//		else if(Robot_Heat_Limit <=100)
-//			return 8;
-//		else if(Robot_Heat_Limit <=150)
-//			return 12;
-//		else if(Robot_Heat_Limit <=280)
-//			return 18;
-//		else if(Robot_Heat_Limit <=400)
-//			return 26;	
-//	}
-//	else if((Robot_Heat_Percent >= 60) && (Robot_Heat_Percent <= (100.0f-Robot_Cool_Percent)))
-//	{
-//		if(Robot_Heat_Limit <=50)
-//			return 1;
-//		else if(Robot_Heat_Limit <=100)
-//			return 2;
-//		else if(Robot_Heat_Limit <=150)
-//			return 3;
-//		else if(Robot_Heat_Limit <=280)
-//			return 4;
-//		else if(Robot_Heat_Limit <=400)
-//			return 5;
-//	}
-//	else if(Robot_Heat_Percent > (100.0f-Robot_Cool_Percent))
-//	{
-//		return (Robot_Cool_Limit / 10);
-//	}
-
-//	else
-//	return 0;
-//}
-
-//void Shoot_Judge_Data_Check(Shoot_t* Shoot_Judge,float* Shot_Judge_Speed_Set,float* Shoot_Trigger_Speed_Set)
-//{
-//	
-
-//	*Shot_Judge_Speed_Set = 9 + (Shoot_Judge->Shoot_Judge_Msg.Shoot_Speed_Limit - 9.0f)/2.3f;
-//	*Shoot_Trigger_Speed_Set = Shoot_Heat_Limit_Get(Shoot_Judge->Shoot_Judge_Msg.Shoot_Heat_Percent_Now,Shoot_Judge->Shoot_Judge_Msg.Shoot_Cool_Percent_Now,Shoot_Judge->Shoot_Judge_Msg.Shoot_Heat_Limit,Shoot_Judge->Shoot_Judge_Msg.Shoot_Cool_Now);
-//}
-
 
 void Shoot_Task(void *pvParameters)
 {

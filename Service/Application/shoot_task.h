@@ -39,26 +39,10 @@
 //默认射速
 #define SHOOT_MOTOR_SPEED_SET 12
 
-#define Trigger_Turn_Speed_Set Trigger_Speed_Set_Test
-
 //拨弹速度设置
 #define Trigger_Speed_Set_Test 6
 #define Trigger_Speed_Set_Fast 2
 #define Trigger_Speed_Set_Slow 2
-
-#define Shoot_Once_Time_Limit 500
-
-//测试拨弹速度
-
-//判断堵转时间
-#define Trigger_Stop_Time_Set 800
-
-//反转时间
-
-#define Trigger_Back_Time_Set 800
-
-//判断枪管无子弹时间
-#define Shoot_Step_Time 50
 
 //微动开关宏定义
 
@@ -84,6 +68,10 @@
 #define LOAD_BULLET_SPEED 2
 #define UNLOAD_BULLET_SPEED -2
 #define TRIGGER_MOTOR_LOW_SPEED_TIME_LIMIT 1000
+
+#define DEFAULT_SHOOT_SPEED_LIMIT 10
+#define DEFAULT_SHOOT_FREQ_LIMIT  1
+//#define MAX_SHOOT_FREQ 5 //机械上能够达到的最大射速
 
 typedef enum
 {
@@ -127,7 +115,11 @@ typedef struct
 	int8_t Unload_Bullet_Speed;		 //拨弹电机退弹丸转速
 	uint8_t Bullets_Per_Rotation;  //拨盘上能装多少个弹丸
 	
-	uint16_t Trigger_Motor_Low_Speed_Time_Limit; //拨弹电机维持最低速度的最长时间
+	uint8_t Default_Shoot_Freq_Limit;			//默认射频，如果没有裁判系统数据，使用该数据
+	uint16_t Default_Shoot_Speed_Limit;      //默认射速，如果没有裁判系统数据，使用该数据
+	//uint8_t Max_Shoot_Freq;										//机械上能够达到的最大射速
+	
+	uint16_t Trigger_Motor_Low_Speed_Time_Limit; //拨弹电机维持最低速度的最长时间，超过该时间认为电机堵转
 	uint16_t Shoot_Bullet_Time_Limit;						 //
 	uint16_t Shoot_Start_Time_Limit;
 	uint16_t Shoot_Stall_Time_Limit;
@@ -149,14 +141,14 @@ typedef struct
 	uint16_t Need_Shoot_Count;
 	
 	
-	float Shoot_Speed_Limit;//当前射速上线
-	uint16_t Shoot_Cooling_Rate;//当前热量冷却值
-	uint16_t Shoot_Heat_Limit;//当前热量上限
-	uint16_t Shoot_Cooling_Limit;//当前热量
-	float Shoot_Speed;//当前射速
-	uint8_t Shoot_Freq;//当前射频
-	float Shoot_Heat_Percent;//当前热量百分比
-	float Shoot_Cool_Percent;//当前冷却值百分比
+	uint16_t Judge_Shoot_Speed_Limit;//当前射速上线
+	uint8_t Judge_Robot_ID;
+	uint16_t Judge_Shoot_Cooling_Rate;//当前每秒热量冷却值
+	uint16_t Judge_Shoot_Cooling_Limit;//当前热量上限
+	uint16_t Judge_Shoot_Cooling_Heat; // 当前热量
+	float Judge_Shoot_Heat_Percent;
+	float Judge_Shoot_Cool_Percent;
+	
 }Shoot_t;
 
 
