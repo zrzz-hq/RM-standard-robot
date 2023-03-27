@@ -1,0 +1,182 @@
+T2CA8 000:218.182   SEGGER J-Link V7.86 Log File
+T2CA8 000:218.345   DLL Compiled: Feb 15 2023 17:09:49
+T2CA8 000:218.355   Logging started @ 2023-03-09 13:56
+T2CA8 000:218.360 - 218.363ms
+T2CA8 000:218.370 JLINK_SetWarnOutHandler(...)
+T2CA8 000:218.377 - 0.009ms
+T2CA8 000:218.384 JLINK_OpenEx(...)
+T2CA8 000:219.622   Firmware: J-Link ARM-OB STM32 compiled Aug 22 2012 19:52:04
+T2CA8 000:220.028   Firmware: J-Link ARM-OB STM32 compiled Aug 22 2012 19:52:04
+T2CA8 000:222.045   Hardware: V7.00
+T2CA8 000:222.065   S/N: 20090929
+T2CA8 000:222.076   OEM: SEGGER
+T2CA8 000:222.087   Feature(s): RDI,FlashDL,FlashBP,JFlash,GDBFull
+T2CA8 000:223.116   TELNET listener socket opened on port 19021
+T2CA8 000:223.259   WEBSRV WEBSRV_Init(): Starting webserver thread(s)
+T2CA8 000:223.583   WEBSRV Webserver running on local port 19080
+T2CA8 000:234.161 - 15.792ms returns "O.K."
+T2CA8 000:234.194 JLINK_GetEmuCaps()
+T2CA8 000:234.200 - 0.008ms returns 0x88EA5833
+T2CA8 000:234.209 JLINK_TIF_GetAvailable(...)
+T2CA8 000:234.560 - 0.361ms
+T2CA8 000:234.593 JLINK_SetErrorOutHandler(...)
+T2CA8 000:234.598 - 0.008ms
+T2CA8 000:234.621 JLINK_ExecCommand("ProjectFile = "C:\Users\endurance\Desktop\3_5_步兵代码\2_25_哨兵代码\2_22_步兵代码\Project\JLinkSettings.ini"", ...). 
+T2CA8 000:246.951   Ref file found at: D:\Keil_v5\ARM\Segger\JLinkDevices.ref
+T2CA8 000:247.024   REF file references invalid XML file: C:\Program Files\SEGGER\JLink\JLinkDevices.xml
+T2CA8 000:247.793   Flash bank @ 0x90000000: SFL: Parsing sectorization info from ELF file
+T2CA8 000:247.804     FlashDevice.SectorInfo[0]: .SectorSize = 0x00010000, .SectorStartAddr = 0x00000000
+T2CA8 000:247.814   FlashBank @0x90000000: Sectorization info from SFL ELF file ignored because sectorization override from DLL / XML file is active.
+T2CA8 000:247.823   OFL: Init() present @ offset 0x00000649
+T2CA8 000:247.830   OFL: UnInit() present @ offset 0x00000663
+T2CA8 000:247.838   OFL: EraseSector() present @ offset 0x00000671
+T2CA8 000:247.846   OFL: ProgramPage() present @ offset 0x000006E9
+T2CA8 000:247.854   OFL: EraseChip() N/A
+T2CA8 000:247.861   OFL: BlankCheck() N/A
+T2CA8 000:247.869   OFL: Verify() N/A
+T2CA8 000:247.877   OFL: SEGGER_FL_Erase() N/A
+T2CA8 000:247.884   OFL: SEGGER_OPEN_Erase() N/A
+T2CA8 000:247.892   OFL: SEGGER_FL_Program() N/A
+T2CA8 000:247.900   OFL: SEGGER_OPEN_Program() N/A
+T2CA8 000:247.907   OFL: SEGGER_FL_Read() N/A
+T2CA8 000:247.915   OFL: SEGGER_OPEN_Read() N/A
+T2CA8 000:247.923   OFL: SEGGER_FL_CalcCRC() N/A
+T2CA8 000:247.930   OFL: SEGGER_OPEN_CalcCRC() N/A
+T2CA8 000:247.938   OFL: SEGGER_FL_Start() N/A
+T2CA8 000:247.946   OFL: SEGGER_OPEN_Start() N/A
+T2CA8 000:247.953   OFL: SEGGER_FL_GetFlashInfo() N/A
+T2CA8 000:247.961   OFL: SEGGER_OPEN_GetFlashInfo() N/A
+T2CA8 000:247.969   OFL: SEGGER_FL_Verify() N/A
+T2CA8 000:247.976   OFL: SEGGER_FL_CheckBlank() N/A
+T2CA8 000:247.984   OFL: SEGGER_FL_Prepare() N/A
+T2CA8 000:247.992   OFL: SEGGER_FL_Restore() N/A
+T2CA8 000:247.999   OFL: SEGGER_FL_EraseChip() N/A
+T2CA8 000:249.008   Device "STM32F427II" selected.
+T2CA8 000:249.414 - 14.824ms returns 0x00
+T2CA8 000:249.460 JLINK_ExecCommand("Device = STM32F427IIHx", ...). 
+T2CA8 000:251.157   Flash bank @ 0x90000000: SFL: Parsing sectorization info from ELF file
+T2CA8 000:251.171     FlashDevice.SectorInfo[0]: .SectorSize = 0x00010000, .SectorStartAddr = 0x00000000
+T2CA8 000:251.180   FlashBank @0x90000000: Sectorization info from SFL ELF file ignored because sectorization override from DLL / XML file is active.
+T2CA8 000:251.188   OFL: Init() present @ offset 0x00000649
+T2CA8 000:251.196   OFL: UnInit() present @ offset 0x00000663
+T2CA8 000:251.203   OFL: EraseSector() present @ offset 0x00000671
+T2CA8 000:251.211   OFL: ProgramPage() present @ offset 0x000006E9
+T2CA8 000:251.219   OFL: EraseChip() N/A
+T2CA8 000:251.226   OFL: BlankCheck() N/A
+T2CA8 000:251.234   OFL: Verify() N/A
+T2CA8 000:251.242   OFL: SEGGER_FL_Erase() N/A
+T2CA8 000:251.249   OFL: SEGGER_OPEN_Erase() N/A
+T2CA8 000:251.257   OFL: SEGGER_FL_Program() N/A
+T2CA8 000:251.291   OFL: SEGGER_OPEN_Program() N/A
+T2CA8 000:251.299   OFL: SEGGER_FL_Read() N/A
+T2CA8 000:251.307   OFL: SEGGER_OPEN_Read() N/A
+T2CA8 000:251.315   OFL: SEGGER_FL_CalcCRC() N/A
+T2CA8 000:251.322   OFL: SEGGER_OPEN_CalcCRC() N/A
+T2CA8 000:251.330   OFL: SEGGER_FL_Start() N/A
+T2CA8 000:251.337   OFL: SEGGER_OPEN_Start() N/A
+T2CA8 000:251.345   OFL: SEGGER_FL_GetFlashInfo() N/A
+T2CA8 000:251.353   OFL: SEGGER_OPEN_GetFlashInfo() N/A
+T2CA8 000:251.360   OFL: SEGGER_FL_Verify() N/A
+T2CA8 000:251.368   OFL: SEGGER_FL_CheckBlank() N/A
+T2CA8 000:251.376   OFL: SEGGER_FL_Prepare() N/A
+T2CA8 000:251.383   OFL: SEGGER_FL_Restore() N/A
+T2CA8 000:251.391   OFL: SEGGER_FL_EraseChip() N/A
+T2CA8 000:252.321   Device "STM32F427II" selected.
+T2CA8 000:252.556 - 3.094ms returns 0x00
+T2CA8 000:252.570 JLINK_ExecCommand("DisableConnectionTimeout", ...). 
+T2CA8 000:252.584 - 0.004ms returns 0x01
+T2CA8 000:252.592 JLINK_GetHardwareVersion()
+T2CA8 000:252.597 - 0.008ms returns 70000
+T2CA8 000:252.604 JLINK_GetDLLVersion()
+T2CA8 000:252.609 - 0.007ms returns 78600
+T2CA8 000:252.616 JLINK_GetOEMString(...)
+T2CA8 000:252.627 JLINK_GetFirmwareString(...)
+T2CA8 000:252.653 - 0.029ms
+T2CA8 000:252.677 JLINK_GetDLLVersion()
+T2CA8 000:252.701 - 0.026ms returns 78600
+T2CA8 000:252.708 JLINK_GetCompileDateTime()
+T2CA8 000:252.727 - 0.021ms
+T2CA8 000:252.735 JLINK_GetFirmwareString(...)
+T2CA8 000:252.740 - 0.007ms
+T2CA8 000:252.747 JLINK_GetHardwareVersion()
+T2CA8 000:252.752 - 0.008ms returns 70000
+T2CA8 000:252.760 JLINK_GetSN()
+T2CA8 000:252.765 - 0.008ms returns 20090929
+T2CA8 000:252.772 JLINK_GetOEMString(...)
+T2CA8 000:252.782 JLINK_TIF_Select(JLINKARM_TIF_SWD)
+T2CA8 000:253.474 - 0.699ms returns 0x00
+T2CA8 000:253.488 JLINK_HasError()
+T2CA8 000:253.502 JLINK_SetSpeed(5000)
+T2CA8 000:253.794 - 0.298ms
+T2CA8 000:254.096 JLINK_HasError()
+T2CA8 000:254.106 JLINK_SetResetType(JLINKARM_RESET_TYPE_NORMAL)
+T2CA8 000:254.111 - 0.008ms returns JLINKARM_RESET_TYPE_NORMAL
+T2CA8 000:254.121 JLINK_Reset()
+T2CA8 000:254.454   InitTarget() start
+T2CA8 000:254.466    J-Link Script File: Executing InitTarget()
+T2CA8 000:254.876   SWD selected. Executing JTAG -> SWD switching sequence.
+T2CA8 000:257.414   Error: Failed to initialized DAP.
+T2CA8 000:257.445   Can not attach to CPU. Trying connect under reset.
+T2CA8 000:308.095   SWD selected. Executing JTAG -> SWD switching sequence.
+T2CA8 000:311.665   Error: Failed to initialized DAP.
+T2CA8 000:311.749   Connecting to CPU via connect under reset failed.
+T2CA8 000:362.998   InitTarget() end
+T2CA8 000:363.227   Connect failed. Resetting via Reset pin and trying again.
+T2CA8 000:425.456   InitTarget() start
+T2CA8 000:425.525    J-Link Script File: Executing InitTarget()
+T2CA8 000:425.943   SWD selected. Executing JTAG -> SWD switching sequence.
+T2CA8 000:429.493   Error: Failed to initialized DAP.
+T2CA8 000:429.559   Can not attach to CPU. Trying connect under reset.
+T2CA8 000:480.390   SWD selected. Executing JTAG -> SWD switching sequence.
+T2CA8 000:484.036   Error: Failed to initialized DAP.
+T2CA8 000:484.100   Connecting to CPU via connect under reset failed.
+T2CA8 000:535.166   InitTarget() end
+T2CA8 000:535.194 - 281.076ms
+T2CA8 000:535.217 JLINK_GetId()
+T2CA8 000:535.454   InitTarget() start
+T2CA8 000:535.467    J-Link Script File: Executing InitTarget()
+T2CA8 000:535.725   SWD selected. Executing JTAG -> SWD switching sequence.
+T2CA8 000:538.460   Error: Failed to initialized DAP.
+T2CA8 000:538.475   Can not attach to CPU. Trying connect under reset.
+T2CA8 000:589.554   SWD selected. Executing JTAG -> SWD switching sequence.
+T2CA8 000:593.148   Error: Failed to initialized DAP.
+T2CA8 000:593.218   Connecting to CPU via connect under reset failed.
+T2CA8 000:644.213   InitTarget() end
+T2CA8 000:644.294   Connect failed. Resetting via Reset pin and trying again.
+T2CA8 000:706.358   InitTarget() start
+T2CA8 000:706.459    J-Link Script File: Executing InitTarget()
+T2CA8 000:706.929   SWD selected. Executing JTAG -> SWD switching sequence.
+T2CA8 000:709.383   Error: Failed to initialized DAP.
+T2CA8 000:709.413   Can not attach to CPU. Trying connect under reset.
+T2CA8 000:760.343   SWD selected. Executing JTAG -> SWD switching sequence.
+T2CA8 000:763.109   Error: Failed to initialized DAP.
+T2CA8 000:763.139   Connecting to CPU via connect under reset failed.
+T2CA8 000:814.083   InitTarget() end
+T2CA8 000:814.167 - 278.964ms returns 0x00000000
+T2CA8 000:814.228 JLINK_GetId()
+T2CA8 000:814.690   InitTarget() start
+T2CA8 000:814.755    J-Link Script File: Executing InitTarget()
+T2CA8 000:815.211   SWD selected. Executing JTAG -> SWD switching sequence.
+T2CA8 000:819.123   Error: Failed to initialized DAP.
+T2CA8 000:819.188   Can not attach to CPU. Trying connect under reset.
+T2CA8 000:869.950   SWD selected. Executing JTAG -> SWD switching sequence.
+T2CA8 000:872.709   Error: Failed to initialized DAP.
+T2CA8 000:872.725   Connecting to CPU via connect under reset failed.
+T2CA8 000:923.745   InitTarget() end
+T2CA8 000:923.835   Connect failed. Resetting via Reset pin and trying again.
+T2CA8 000:985.999   InitTarget() start
+T2CA8 000:986.171    J-Link Script File: Executing InitTarget()
+T2CA8 000:986.599   SWD selected. Executing JTAG -> SWD switching sequence.
+T2CA8 000:990.501   Error: Failed to initialized DAP.
+T2CA8 000:990.573   Can not attach to CPU. Trying connect under reset.
+T2CA8 001:041.441   SWD selected. Executing JTAG -> SWD switching sequence.
+T2CA8 001:045.153   Error: Failed to initialized DAP.
+T2CA8 001:045.216   Connecting to CPU via connect under reset failed.
+T2CA8 001:095.925   InitTarget() end
+T2CA8 001:096.090 - 281.878ms returns 0x00000000
+T2CA8 001:108.735 JLINK_GetFirmwareString(...)
+T2CA8 001:108.820 - 0.088ms
+T2CA8 001:571.623 JLINK_Close()
+T2CA8 001:589.968 - 18.365ms
+T2CA8 001:589.994   
+T2CA8 001:590.002   Closed
