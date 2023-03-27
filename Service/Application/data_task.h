@@ -67,7 +67,7 @@ typedef enum
 		VAR_TYPE_FP64,
 }Variable_Type_t;
 
-typedef struct Variable
+typedef struct
 {
 		ListItem_t* List_Item;
 		char* Var_Name;
@@ -76,13 +76,13 @@ typedef struct Variable
 		bool_t Read_Only;
 }Variable_t;
 
-//typedef struct
-//{
-//		Variable_t* Current_Var;
-//		List_t* Var_List;
-//}Variable_Iter_t;
-
-//typedef Variable_Iter_t* Variable_Handle_t;
+typedef enum
+{
+		OPT_END,
+		OPT_NEXT,
+		OPT_PREV,
+		OPT_NONE
+}Variable_Iterate_Opt_t;
 
 typedef struct
 {

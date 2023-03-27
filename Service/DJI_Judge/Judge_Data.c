@@ -606,7 +606,7 @@ int Judge_Data_Update(uint8_t* Judge_Data_Get,DJI_Judge_t* DJI_Judge_Update)
 						}
 						case Judge_CmdID_Missile_State:
 						{
-							memcpy(&DJI_Judge_Update->DJI_Judge_Msg.Judge_dart_status, (Judge_Data_Get + Judge_Header_LEN + Judge_Cmd_id_LEN), Judge_Len_Missile_State);
+							memcpy(&DJI_Judge_Update->DJI_Judge_Msg.Judge_dart_client_cmd, (Judge_Data_Get + Judge_Header_LEN + Judge_Cmd_id_LEN), Judge_Len_Missile_State);
 							break;
 						}
 						case Judge_CmdID_Area_Event:

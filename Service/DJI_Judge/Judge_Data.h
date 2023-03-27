@@ -145,7 +145,7 @@ typedef __packed struct
 //	uint32_t end_x:11;
 //	uint32_t end_y:11;
 //	union Graphoc_Last_Data_t Graphoc_Last_Data;480
-}Word_data_struct_t;
+}Word_data_struct_t;	
 
 
 
@@ -155,11 +155,6 @@ typedef __packed struct
 	uint8_t operate_tpye;
 	uint8_t layer;
 }Judge_client_custom_graphic_delete_t;
-
-
-
-
-
 
 
 //客户端绘制一个图形
@@ -221,12 +216,6 @@ union Judge_Graphic_Client_Seven_t
 	uint8_t Judge_client_custom_graphic_seven_Data[105];
 };
 
-//union Judge_Character_Client_t
-//{
-//	graphic_data_struct_t grapic_data_struct;
-//	uint8_t Judge_client_custom_graphic_single_Data[15];
-//};
-
 
 union Judge_Character_Client_t
 {
@@ -254,15 +243,16 @@ typedef struct
 
 /*******************************************************************************
 	--------------------------------Cmd_ID----------------------------------------
-	0x0001	 11 		比赛状态数据，1Hz 周期发送
+	0x0001	 11 		比赛状态数据，3Hz 周期发送
 	0x0002	 1 		比赛结果数据，比赛结束后发送
-	0x0003	 28 	比赛机器人血量数据，1Hz 周期发送
+	0x0003	 28 	比赛机器人血量数据，3Hz 周期发送
 	0x0004	 3 		飞镖发射状态，飞镖发射时发送
-	0x0101	 4 		场地事件数据，1Hz 周期发送
+  0x0005   11   人工智能挑战赛加成与惩罚状态，1Hz 周期发送
+	0x0101	 4 		场地事件数据，3Hz 周期发送
 	0x0102	 3 		场地补给站动作标识数据，动作发生后发送
 	0x0103	 2 		请求补给站补弹数据，由参赛队发送，上限 10Hz。（RM 对抗赛尚未开放）
 	0x0104	 2 		裁判警告数据，警告发生后发送
-	0x0105	 1 		飞镖发射口倒计时，1Hz 周期发送
+	0x0105	 1 		飞镖发射口倒计时，3Hz 周期发送
 	0x0201	 27 	机器人状态数据，10Hz 周期发送
 	0x0202	 14 	实时功率热量数据，50Hz 周期发送
 	0x0203	 16 	机器人位置数据，10Hz 发送
@@ -270,8 +260,8 @@ typedef struct
 	0x0205	 3 		空中机器人能量状态数据，10Hz 周期发送，只有空中机器人主控发送
 	0x0206	 1 		伤害状态数据，伤害发生后发送
 	0x0207	 6 		实时射击数据，子弹发射后发送
-	0x0208	 2 		弹丸剩余发射数，仅空中机器人，哨兵机器人以及 ICRA 机器人发送，1Hz 周期发送
-	0x0209	 4 		机器人 RFID 状态，1Hz 周期发送
+	0x0208	 2 		弹丸剩余发射数，仅空中机器人，哨兵机器人发送，10Hz 周期发送
+	0x0209	 4 		机器人 RFID 状态，3Hz 周期发送
 	0x020A	 12 	飞镖机器人客户端指令数据，10Hz 周期发送
 	0x0301 	 n 		机器人间交互数据，发送方触发发送
 	0x0302 	 n 		定义控制器交互数据接口，通过客户端触发发送，上限 30Hz
@@ -330,16 +320,16 @@ typedef enum
 /***
 比赛状态数据
 CMD_ID:	0x0001
-发送频率：1Hz
+发送频率：3Hz
 发送范围：所有机器人
 ****/
 typedef __packed struct
 {
- uint8_t game_type : 4;
- uint8_t game_progress : 4;
- uint16_t stage_remain_time;
- uint64_t SyncTimeStamp;
-}Judge_game_status_t;
+	uint8_t game_type : 4;
+	uint8_t game_progress : 4;
+	uint16_t stage_remain_time;
+	uint64_t SyncTimeStamp;
+} ext_game_status_t;
 
 /***
 比赛结果数据
@@ -349,57 +339,72 @@ CMD_ID:	0x0002
 ****/
 typedef __packed struct
 {
- uint8_t winner;
-}Judge_game_result_t;
+	uint8_t winner;
+} ext_game_result_t;
 
 /***
 机器人血量数据
 CMD_ID:	0x0003
-发送频率：1Hz
+发送频率：3Hz
 发送范围：所有机器人。
 ****/
 typedef __packed struct
 {
- uint16_t red_1_robot_HP;
- uint16_t red_2_robot_HP;
- uint16_t red_3_robot_HP;
- uint16_t red_4_robot_HP;
- uint16_t red_5_robot_HP;
- uint16_t red_7_robot_HP;
- uint16_t red_outpost_HP;
- uint16_t red_base_HP;
- uint16_t blue_1_robot_HP;
- uint16_t blue_2_robot_HP;
- uint16_t blue_3_robot_HP;
- uint16_t blue_4_robot_HP;
- uint16_t blue_5_robot_HP;
- uint16_t blue_7_robot_HP;
- uint16_t blue_outpost_HP;
- uint16_t blue_base_HP;
-}Judge_game_robot_HP_t;
+	uint16_t red_1_robot_HP;   // 红1英雄机器人血量，未上场以及罚下血量为 0
+	uint16_t red_2_robot_HP;   // 红 2 工程机器人血量
+	uint16_t red_3_robot_HP;   // 红 3 步兵机器人血量
+	uint16_t red_4_robot_HP;   // 红 4 步兵机器人血量
+	uint16_t red_5_robot_HP;   // 红 5 步兵机器人血量	
+	uint16_t red_7_robot_HP;   // 红 7 哨兵机器人血量
+	uint16_t red_outpost_HP;   // 红方前哨战血量
+	uint16_t red_base_HP;      // 红方基地血量
+	uint16_t blue_1_robot_HP;  // 蓝 1 英雄机器人血量
+	uint16_t blue_2_robot_HP;  // 蓝 2 工程机器人血量
+	uint16_t blue_3_robot_HP;  // 蓝 3 步兵机器人血量
+	uint16_t blue_4_robot_HP;  // 蓝 4 步兵机器人血量
+	uint16_t blue_5_robot_HP;  // 蓝 5 步兵机器人血量
+	uint16_t blue_7_robot_HP;  // 蓝 7 哨兵机器人血量
+	uint16_t blue_outpost_HP;  // 蓝方前哨站血量
+	uint16_t blue_base_HP;     // 蓝方基地血量
+} ext_game_robot_HP_t;
 
-/***
-飞镖发射状态
-CMD_ID:	0x0004
-发送频率：飞镖发射后发送，
-发送范围：所有机器人。
-****/
+/**
+ 人工智能挑战赛加成\惩罚区分布与潜伏模式状态：
+ CMD_ID: 0x0005。
+ 发送频率：1Hz 
+ 发送范围：所有机器人
+***/
 typedef __packed struct
 {
- uint8_t dart_belong;
- uint16_t stage_remaining_time;
-}Judge_dart_status_t;
-
+	uint8_t F1_zone_status:1;
+	uint8_t F1_zone_buff_debuff_status:3; 
+	uint8_t F2_zone_status:1;
+	uint8_t F2_zone_buff_debuff_status:3; 
+	uint8_t F3_zone_status:1;
+	uint8_t F3_zone_buff_debuff_status:3; 
+	uint8_t F4_zone_status:1;
+	uint8_t F4_zone_buff_debuff_status:3; 
+	uint8_t F5_zone_status:1;
+	uint8_t F5_zone_buff_debuff_status:3; 
+	uint8_t F6_zone_status:1;
+	uint8_t F6_zone_buff_debuff_status:3;
+	uint16_t red1_bullet_left;
+	uint16_t red2_bullet_left;
+	uint16_t blue1_bullet_left;
+	uint16_t blue2_bullet_left;
+	uint8_t lurk_mode;
+	uint8_t res;
+} ext_ICRA_buff_debuff_zone_and_lurk_status_t;
 /***
 场地事件数据
 CMD_ID:	0x0101。
-发送频率：1Hz
+发送频率：3Hz
 发送范围：己方机器人。
 ****/
 typedef __packed struct
 {
- uint32_t event_type;
-}Judge_event_data_t;
+	uint32_t event_type;
+} ext_event_data_t;
 
 /***
 补给站动作标识
@@ -409,13 +414,11 @@ CMD_ID:	0x0102
 ****/
 typedef __packed struct
 {
- uint8_t supply_projectile_id;
- uint8_t supply_robot_id;
- uint8_t supply_projectile_step;
-uint8_t supply_projectile_num;
-}Judge_supply_projectile_action_t;
-
-
+	uint8_t supply_projectile_id; 
+	uint8_t supply_robot_id; 
+	uint8_t supply_projectile_step; 
+	uint8_t supply_projectile_num;
+} ext_supply_projectile_action_t;
 /***
 裁判警告信息
 CMD_ID:	0x0104
@@ -424,20 +427,20 @@ CMD_ID:	0x0104
 ****/
 typedef __packed struct
 {
- uint8_t level;
- uint8_t foul_robot_id;
-}Judge_referee_warning_t;
+	uint8_t level;
+	uint8_t foul_robot_id; 
+} ext_referee_warning_t;
 
 /***
 飞镖发射口倒计时
 CMD_ID:	0x0105
-发送频率：1Hz
+发送频率：3Hz
 发送范围：己方机器人。
 ****/
 typedef __packed struct
 {
- uint8_t dart_remaining_time;
-}Judge_dart_remaining_time_t;
+	uint8_t dart_remaining_time;
+} ext_dart_remaining_time_t;
 
 /***
 比赛机器人状态
@@ -447,24 +450,24 @@ CMD_ID:	0x0201
 ****/
 typedef __packed struct
 {
- uint8_t robot_id;
- uint8_t robot_level;
- uint16_t remain_HP;
- uint16_t max_HP;
- uint16_t shooter_heat0_cooling_rate;
- uint16_t shooter_heat0_cooling_limit;
- uint16_t shooter_heat0_speed_limit;
- uint16_t shooter_heat1_cooling_rate;
- uint16_t shooter_heat1_cooling_limit;
- uint16_t shooter_heat1_speed_limit;
- uint16_t shooter_42mm_cooling_rate;
- uint16_t shooter_42mm_cooling_limit;
- uint16_t shooter_42mm_speed_limit;	
- uint16_t max_chassis_power;
- uint8_t mains_power_gimbal_output : 1;
- uint8_t mains_power_chassis_output : 1;
- uint8_t mains_power_shooter_output : 1;
-}Judge_game_robot_status_t;
+	uint8_t robot_id;
+	uint8_t robot_level;     //机器人等级
+	uint16_t remain_HP;      // 机器人剩余血量
+	uint16_t max_HP;         // 机器人上限血量
+	uint16_t shooter_id1_17mm_cooling_rate;    // 机器人 1 号 17mm 枪口每秒冷却值
+	uint16_t shooter_id1_17mm_cooling_limit;   // 机器人 1 号 17mm 枪口热量上限
+	uint16_t shooter_id1_17mm_speed_limit;    //机器人 1 号 17mm 枪口上限速度 单位 m/s
+	uint16_t shooter_id2_17mm_cooling_rate;   // 机器人 2 号 17mm 枪口每秒冷却值	
+	uint16_t shooter_id2_17mm_cooling_limit;  // 机器人 2 号 17mm 枪口热量上限
+	uint16_t shooter_id2_17mm_speed_limit;    //机器人 2 号 17mm 枪口上限速度 单位 m/s 
+	uint16_t shooter_id1_42mm_cooling_rate;   // 机器人 42mm 枪口每秒冷却值
+	uint16_t shooter_id1_42mm_cooling_limit;  // 机器人 42mm 枪口热量上限
+	uint16_t shooter_id1_42mm_speed_limit;    // 机器人 42mm 枪口上限速度 单位 m/s
+	uint16_t chassis_power_limit;             // 机器人底盘功率限制上限
+	uint8_t mains_power_gimbal_output : 1; 
+	uint8_t mains_power_chassis_output : 1;
+	uint8_t mains_power_shooter_output : 1;
+} ext_game_robot_status_t;
 
 
 /***
@@ -475,15 +478,14 @@ CMD_ID:	0x0202。
 ****/
 typedef __packed struct
 {
- uint16_t chassis_volt;
- uint16_t chassis_current;
- float chassis_power;
- uint16_t chassis_power_buffer;
- uint16_t shooter_heat0;
- uint16_t shooter_heat1;
- uint16_t mobile_shooter_heat2;
-}Judge_power_heat_data_t;
-
+	uint16_t chassis_volt;   // 底盘输出电压 单位 毫伏
+	uint16_t chassis_current;  //底盘输出电流 单位 毫安
+	float chassis_power;       // 底盘输出功率 单位 W 瓦
+	uint16_t chassis_power_buffer;  // 底盘功率缓冲 单位 J 焦耳 备注：飞坡根据规则增加至 250J
+	uint16_t shooter_id1_17mm_cooling_heat;  // 1 号 17mm 枪口热量
+	uint16_t shooter_id2_17mm_cooling_heat;  // 2 号 17mm 枪口热量
+	uint16_t shooter_id1_42mm_cooling_heat;  // 42mm 枪口热量
+} ext_power_heat_data_t;
 
 /***
 机器人位置
@@ -493,11 +495,11 @@ CMD_ID:	0x0203
 ****/
 typedef __packed struct
 {
- float x;
- float y;
- float z;
- float yaw;
-}Judge_game_robot_pos_t;
+	float x;
+	float y;
+	float z;
+	float yaw;
+} ext_game_robot_pos_t;
 
 
 /***
@@ -508,8 +510,8 @@ CMD_ID:	0x0204
 ****/
 typedef __packed struct
 {
- uint8_t power_rune_buff;
-}Judge_buff_t;
+	uint8_t power_rune_buff;
+}ext_buff_t;
 
 
 /***
@@ -520,8 +522,8 @@ CMD_ID:	0x0205
 ****/
 typedef __packed struct
 {
- uint8_t attack_time;
-}Judge_aerial_robot_energy_t;
+	uint8_t attack_time;
+} aerial_robot_energy_t;
 
 
 /***
@@ -532,9 +534,9 @@ CMD_ID:	0x0206
 ****/
 typedef __packed struct
 {
- uint8_t armor_id : 4;
- uint8_t hurt_type : 4;
-}Judge_robot_hurt_t;
+	uint8_t armor_id : 4;
+	uint8_t hurt_type : 4;
+} ext_robot_hurt_t;
 
 /***
 实时射击信息
@@ -544,11 +546,11 @@ CMD_ID:	0x0207
 ****/
 typedef __packed struct
 {
- uint8_t bullet_type;
- uint8_t shoot_ID;
- uint8_t bullet_freq;
- float bullet_speed;
-}Judge_shoot_data_t;
+	uint8_t bullet_type;
+	uint8_t shooter_id;
+	uint8_t bullet_freq;
+	float bullet_speed;
+} ext_shoot_data_t;
 
 /***
 子弹剩余发射数
@@ -558,10 +560,10 @@ CMD_ID:	0x0208
 ****/
 typedef __packed struct
 {
- uint16_t bullet_remaining_num;
-}Judge_bullet_remaining_t;
-
-
+	uint16_t bullet_remaining_num_17mm;
+	uint16_t bullet_remaining_num_42mm;
+	uint16_t coin_remaining_num;
+} ext_bullet_remaining_t;
 /***
 机器人 RFID 状态：
 CMD_ID:	0x0209
@@ -570,8 +572,8 @@ CMD_ID:	0x0209
 ****/
 typedef __packed struct
 {
- uint32_t rfid_status;
-}Judge_RFID_status_t;
+	uint32_t rfid_status;
+} ext_rfid_status_t;
 
 /***
 飞镖机器人客户端指令数据
@@ -581,16 +583,11 @@ CMD_ID:	0x020A
 ****/
 typedef __packed struct
 {
- uint8_t dart_launch_opening_status;
- uint8_t dart_attack_target;
- uint16_t target_change_time;
-// uint8_t first_dart_speed;
-// uint8_t second_dart_speed;
-// uint8_t third_dart_speed;
-// uint8_t fourth_dart_speed;
-// uint16_t last_dart_launch_time;
- uint16_t operate_launch_cmd_time;
-}Judge_dart_client_cmd_t;
+	uint8_t dart_launch_opening_status;
+	uint8_t dart_attack_target;
+	uint16_t target_change_time;
+	uint16_t operate_launch_cmd_time;
+} ext_dart_client_cmd_t;
 
 typedef __packed struct
 {
@@ -629,24 +626,23 @@ typedef enum
 typedef struct
 {
 	Judge_Robot_ID_t Judge_Robot_ID;
-	Judge_game_status_t Judge_game_status;
-	Judge_game_result_t Judge_game_result;
-	Judge_game_robot_HP_t Judge_game_robot_HP;
-	Judge_dart_status_t Judge_dart_status;
-	Judge_event_data_t Judge_event_data;
-	Judge_supply_projectile_action_t Judge_supply_projectile_action;
-	Judge_referee_warning_t Judge_referee_warning;
-	Judge_dart_remaining_time_t Judge_dart_remaining_time;
-	Judge_game_robot_status_t Judge_game_robot_status;
-	Judge_power_heat_data_t Judge_power_heat_data;
-	Judge_game_robot_pos_t Judge_game_robot_pos;
-	Judge_buff_t Judge_buff;
-	Judge_aerial_robot_energy_t Judge_aerial_robot_energy;
-	Judge_robot_hurt_t Judge_robot_hurt;
-	Judge_shoot_data_t Judge_shoot_data;
-	Judge_bullet_remaining_t Judge_bullet_remaining;
-	Judge_RFID_status_t Judge_RFID_status;
-	Judge_dart_client_cmd_t Judge_dart_client_cmd;
+	ext_game_status_t Judge_game_status;
+	ext_game_result_t Judge_game_result;
+	ext_game_robot_HP_t Judge_game_robot_HP;
+	ext_event_data_t Judge_event_data;
+	ext_supply_projectile_action_t Judge_supply_projectile_action;
+	ext_referee_warning_t Judge_referee_warning;
+	ext_dart_remaining_time_t Judge_dart_remaining_time;
+	ext_game_robot_status_t Judge_game_robot_status;
+	ext_power_heat_data_t Judge_power_heat_data;
+	ext_game_robot_pos_t Judge_game_robot_pos;
+	ext_buff_t Judge_buff;
+	aerial_robot_energy_t Judge_aerial_robot_energy;
+	ext_robot_hurt_t Judge_robot_hurt;
+	ext_shoot_data_t Judge_shoot_data;
+	ext_bullet_remaining_t Judge_bullet_remaining;
+	ext_rfid_status_t Judge_RFID_status;
+	ext_dart_client_cmd_t Judge_dart_client_cmd;
 	Judge_Student_Data_t Judge_Student_Data;
 	
 } DJI_Judge_Msg_t;

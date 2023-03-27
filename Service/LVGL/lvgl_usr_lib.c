@@ -713,10 +713,13 @@ lv_obj_t* lv_edit_win_create(lv_obj_t* parent,double val, void* user_data, void*
     {
     case EDIT_KB_MAP_FP:
         sprintf(val_str, "%.3f", val);
+				break;
     case EDIT_KB_MAP_INT:
         sprintf(val_str, "%d", (int32_t)val);
+				break;
     case EDIT_KB_MAP_UINT:
         sprintf(val_str, "%u", (uint32_t)val);
+				break;
     }
     lv_textarea_set_text(edit_win->edit_textarea, val_str);
     lv_mem_free(val_str);

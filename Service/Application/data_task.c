@@ -506,6 +506,32 @@ Variable_t* Get_First_Variable()
 		return (Variable_t*)(List_Item->xItemValue);
 }
 
+void Iterate_All_Variable(Variable_Iterate_Opt_t (*CallBack)(Variable_t* Var))
+{
+		Variable_t* Var_Node = Get_First_Variable();
+		xSemaphoreTake(Data.Variable_Semphr,portMAX_DELAY);
+		while(Var_Node)
+		{
+				switch(CallBack(Var_Node))
+				{
+					case OPT_NEXT:
+						Var_Node = Get_Next_Variable(Var_Node);
+						break;
+					case OPT_PREV:
+						Var_Node = Get_Prev_Variable(Var_Node);
+						break;
+					case OPT_END:
+						Var_Node = NULL;
+						break;
+					default:
+						break;
+				}
+				
+		}
+		xSemaphoreGive(Data.Variable_Semphr);
+}
+
+
 Data_Res_t Save_Data_To_SDCard(void)
 {
 		FATFS Fs;
@@ -658,7 +684,7 @@ TaskHandle_t* Create_Data_Task(void)
     xTaskCreate((TaskFunction_t)Data_Task,          //任务函数
                 (const char *)"Data_Task",          //任务名称
                 (uint16_t)DATA_STK_SIZE,            //任务堆栈大小
-                (void *)NULL,                        //传递给任务函数的参数
+                (void *)NULL,                       //传递给任务函数的参数
                 (UBaseType_t)DATA_TASK_PRIO,        //任务优先级
                 (TaskHandle_t *)&DataTask_Handler); //任务句柄
 		return &DataTask_Handler;						

@@ -508,7 +508,7 @@ void Chassis_Data_Update(Chassis_t* Chassis_Update)
 	//裁判系统数据更新
 	Chassis_Update->Chassis_Power_Data_Get = (float)Chassis_Update->Chassis_Judge_Msg_Get->Judge_power_heat_data.chassis_power;
 	Chassis_Update->Chassis_Heat_Data_Get = (int)Chassis_Update->Chassis_Judge_Msg_Get->Judge_power_heat_data.chassis_power_buffer;
-	Chassis_Update->Chassis_Max_Power_Data_Get = (int)Chassis_Update->Chassis_Judge_Msg_Get->Judge_game_robot_status.max_chassis_power;
+	//Chassis_Update->Chassis_Max_Power_Data_Get = (int)Chassis_Update->Chassis_Judge_Msg_Get->Judge_game_robot_status.max_chassis_power;
 	if(Chassis_Update->Chassis_Heat_Data_Get > 60)
 	{
 			Chassis_Update->Chassis_Max_Heat_Data_Get = Chassis_Max_Heat_Feipo;
