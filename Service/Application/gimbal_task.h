@@ -70,9 +70,9 @@
 #define GIMBAL_PITCH_SPEED_IMAXOUT 5000
 
 #define GIMBAL_YAW_IMU_ANGLE_ADDRESS_OFFSET  0
-#define GIMBAL_PITCH_IMU_ANGLE_ADDRESS_OFFSET  1
+#define GIMBAL_PITCH_IMU_ANGLE_ADDRESS_OFFSET  2
 #define GIMBAL_YAW_IMU_ASPEED_ADDRESS_OFFSET  0
-#define GIMBAL_PITCH_IMU_ASPEED_ADDRESS_OFFSET  1
+#define GIMBAL_PITCH_IMU_ASPEED_ADDRESS_OFFSET  2
 
 #define GIMBAL_YAW_MAX_ANGLE 1.59
 #define GIMBAL_YAW_MIN_ANGLE -1.59
@@ -99,6 +99,8 @@
 #define GIMBAL_INIT_PITCH_SPEED  0.004f
 #define GIMBAL_INIT_YAW_SPEED    0.001f
 #define GIMBAL_MAX_INIT_TIME 		 5000
+
+#define GIMBAL_MAX_NO_OPT_TIME 1000
 
 typedef enum
 {
@@ -219,6 +221,9 @@ typedef struct
 	float Gimbal_Pitch_Rc_Sen;
 	float Gimbal_Yaw_Mouse_Sen;
 	float Gimbal_Pitch_Mouse_Sen;
+	
+	uint16_t Gimbal_Yaw_No_Opt_Time;
+	uint16_t Gimbal_Pitch_No_Opt_Time;
 	//云台发送电流值
 	//float Gimbal_Motor_Current_Send[2];
 

@@ -79,11 +79,11 @@ void Shoot_Add_Variable(Shoot_t* Shoot_Variable)
 void Shoot_Mode_Set(Shoot_t* Mode_Set)
 {
 		uint8_t Shoot_Mode_Switch = Mode_Set->Shoot_RC_Ctl_Data->rc.s1;
-		uint8_t Shoot_Mode_Key = Mode_Set->Shoot_RC_Ctl_Data->key.v;
+		uint16_t Shoot_Mode_Key = Mode_Set->Shoot_RC_Ctl_Data->key.v;
 		uint8_t Shoot_Mouse_Key = Mode_Set->Shoot_RC_Ctl_Data->mouse.press_l;
 	
 		uint8_t Shoot_Start_Stop_Signal = (Shoot_Mode_Switch==RC_SW_UP&&Mode_Set->Last_Shoot_Mode_Switch!=RC_SW_UP)
-																			||(Shoot_Mode_Key&SHOOT_START_STOP_KEY&&!(Mode_Set->Last_Shoot_Mode_Key&SHOOT_START_STOP_KEY));
+																			||((Shoot_Mode_Key&SHOOT_START_STOP_KEY)&&!(Mode_Set->Last_Shoot_Mode_Key&SHOOT_START_STOP_KEY));
 	
 	
 		//在停止射击状态下上拨,或者按下R键，进入开始射击状态
@@ -91,7 +91,12 @@ void Shoot_Mode_Set(Shoot_t* Mode_Set)
 		{
 				Laser_Off();
 				if(Shoot_Start_Stop_Signal)
-						Mode_Set->Shoot_Mode = SHOOT_START;
+				{
+						if(Mode_Set->Shoot_Key == SHOOT_KEY_ON)
+								Mode_Set->Shoot_Mode = SHOOT_READY;
+						else
+								Mode_Set->Shoot_Mode = SHOOT_START;
+				}
 		}
 		else 
 		{
@@ -154,8 +159,8 @@ void Shoot_Mode_Set(Shoot_t* Mode_Set)
 										if(Trigger_Motor_Stall_Signal)
 												Mode_Set->Shoot_Mode = SHOOT_STALL;
 										//否则表明没有弹丸了
-										else
-												Mode_Set->No_Bullet_Flag = 1;
+//										else
+//												Mode_Set->No_Bullet_Flag = 1;
 								}
 						}
 						//在准备射击状态下，如果需要发射的弹丸数目大于0，进入发射状态
@@ -172,7 +177,7 @@ void Shoot_Mode_Set(Shoot_t* Mode_Set)
 						else if(Mode_Set->Shoot_Mode == SHOOT_BULLET)
 						{
 							//在发射弹丸状态，如果弹丸射出，进入开始发射状态，需要发射的弹丸数目减一
-							if(Mode_Set->Shoot_Key==SHOOT_KEY_OFF&&Mode_Set->Last_Shoot_Key==SHOOT_KEY_ON)
+							if(Mode_Set->Shoot_Key==SHOOT_KEY_OFF)//&&Mode_Set->Last_Shoot_Key==SHOOT_KEY_ON)
 							{
 									Mode_Set->Shoot_Mode=SHOOT_START;
 									Mode_Set->Need_Shoot_Count--;
@@ -184,8 +189,8 @@ void Shoot_Mode_Set(Shoot_t* Mode_Set)
 									if(Trigger_Motor_Stall_Signal)
 											Mode_Set->Shoot_Mode=SHOOT_STALL;
 									//否则表明没有弹丸了
-									else
-											Mode_Set->No_Bullet_Flag = 1;
+//									else
+//											Mode_Set->No_Bullet_Flag = 1;
 							}
 						}
 				}
@@ -347,7 +352,7 @@ void Shoot_Control_Data_Set(Shoot_t* Control_Data_Set)
 		{
 				uint8_t Freq_Set = Get_Shoot_Freq_From_Judge_System(Control_Data_Set);
 				//给射频加上正负号，与加载弹丸速度的正负号一致
-				if(Control_Data_Set->Need_Shoot_Count>=0)
+				if(Control_Data_Set->Load_Bullet_Speed>0)
 						Control_Data_Set->Trigger_Motor_Speed_Set = Freq_Set;
 				else
 						Control_Data_Set->Trigger_Motor_Speed_Set = -Freq_Set;

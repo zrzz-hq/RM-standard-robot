@@ -10,7 +10,7 @@
 
 #include "lvgl.h"
 
-#define GUI_TASK_PRIO 9
+#define GUI_TASK_PRIO 21
 #define GUI_STK_SIZE 1024
 extern TaskHandle_t GuiTask_Handler;
 

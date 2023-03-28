@@ -25,8 +25,6 @@
 #define CHASSIS_ANGLE_MAXOUT 5
 #define CHASSIS_ANGLE_IMAXOUT 0
 
-//底盘最大速度设置
-#define Chassis_Max_Speed_Sett 6
 
 #define CHASSIS_3508_RPM_TO_WHEEL_SPEED 0.0012708333f
 
@@ -67,8 +65,6 @@
 #define RB_MOTOR_ID 0x204
 #define CHASSIS_MOTOR_ALL_ID 0x200
 #define CHASSIS_CAN CAN2_RX
-
-#define Motionless_Time_Set 3000 
 
 typedef enum
 {
@@ -121,25 +117,22 @@ typedef struct
 	float Chassis_Motor_Speed_Get[4];//底盘电机当前速度
 	float Chassis_Motor_Curent_Send[4];//底盘发送电流值
 	
+	uint8_t Chassis_X_Reverse_Flag;
+	uint8_t Chassis_Y_Reverse_Flag;
+	uint8_t Chassis_WZ_Reverse_Flag;
+	
 	uint16_t Chassis_Last_Mode_Key;
 	uint8_t Chassis_Last_Mode_Switch;
 	
-	float Chassis_Power_Data_Get;	//底盘功率数据
-	int Chassis_Heat_Data_Get;		//底盘热量数据
-	int Chassis_Max_Power_Data_Get;	//当前底盘最大功率
-	int Chassis_Max_Heat_Data_Get;	//当前底盘最大热量
-	
-	uint16_t Chassis_Voltage_In_Data_Get;//电容电压读取
-	uint16_t Chassis_Cap_Data_Get;//输入电流读取
-	uint16_t Chassis_Cap_Power_Get;//超级电容电压容量百分比
-	float Chassis_Cap_Power_Percent;	//目标功率设置
-	uint16_t Chassis_Cap_Power_Set;
+	float Chassis_Power;	//底盘功率数据
+	uint16_t Chassis_Power_Buffer;		//底盘热量数据
+	uint16_t Chassis_Max_Power;	//当前底盘最大功率
 
 }Chassis_t;
 
 void Chassis_Task(void *pvParameters);
 
-Chassis_Mode_t* Return_Chassis_Mode_Add(void);
+uint8_t Is_Chassis_Spin();
 
 #endif
 

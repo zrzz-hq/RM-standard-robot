@@ -20,9 +20,6 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-static uint8_t current_x;
-static uint8_t current_y;
-
 
 //int a;
 /**
@@ -80,8 +77,6 @@ static void oled_set_pos(uint8_t x, uint8_t y)
     oled_write_byte((0xb0 + y), OLED_CMD);              //set page address y								//add a nop
 		oled_write_byte((x&0x0f), OLED_CMD);                //set column low address
     oled_write_byte(((x&0xf0)>>4)|0x10, OLED_CMD);      //set column high address
-		current_x = x;
-		current_y = y;
 }
 
 /**
@@ -94,8 +89,6 @@ void oled_display_on(void)
 {
     oled_write_byte(0x8d, OLED_CMD);
     oled_write_byte(0x14, OLED_CMD);
-		oled_write_byte(0xa4, OLED_CMD);    //disable entire dispaly on
-    oled_write_byte(0xa6, OLED_CMD);    //disable inverse display on
     oled_write_byte(0xaf, OLED_CMD);
 }
 
@@ -469,14 +462,15 @@ void oled_init(void)
     oled_write_byte(0x40, OLED_CMD);    //set vcom deselect level
     oled_write_byte(0x20, OLED_CMD);    //set page addressing mode
     oled_write_byte(0x02, OLED_CMD);    //
-    //oled_write_byte(0x8d, OLED_CMD);    //set charge pump enable/disable
-    //oled_write_byte(0x14, OLED_CMD);    //charge pump disable
-    //oled_write_byte(0xa4, OLED_CMD);    //disable entire dispaly on
-    //oled_write_byte(0xa6, OLED_CMD);    //disable inverse display on
-    //oled_write_byte(0xaf, OLED_CMD);    //turn on oled panel
+    oled_write_byte(0x8d, OLED_CMD);    //set charge pump enable/disable
+    oled_write_byte(0x14, OLED_CMD);    //charge pump disable
+    oled_write_byte(0xa4, OLED_CMD);    //disable entire dispaly on
+    oled_write_byte(0xa6, OLED_CMD);    //disable inverse display on
+    oled_write_byte(0xaf, OLED_CMD);    //turn on oled panel
 
     oled_clear(Pen_Clear);
     oled_set_pos(0, 0);
 		oled_LOGO();
+		oled_refresh_gram();
 
 }

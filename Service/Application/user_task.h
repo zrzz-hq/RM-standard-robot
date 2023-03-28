@@ -5,8 +5,7 @@
 
 
 
-void UserTast(void *pvParameters);
-void Osker_Task(void *pvParameters);
+void UserTask(void *pvParameters);
 	
 #endif
 

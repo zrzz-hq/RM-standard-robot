@@ -130,12 +130,12 @@ typedef struct
 	uint16_t Shoot_Mode_Switch_Down_Time;
 	uint16_t Trigger_Motor_Low_Speed_Time;
 	
-	uint8_t No_Bullet_Flag;
+//	uint8_t No_Bullet_Flag;
 	
 	uint8_t Shoot_Key;
 	uint8_t Last_Shoot_Key;
 	uint8_t Last_Shoot_Mode_Switch;
-	uint8_t Last_Shoot_Mode_Key;
+	uint16_t Last_Shoot_Mode_Key;
 	uint8_t Last_Shoot_Mouse_Key;
 	
 	uint16_t Need_Shoot_Count;

@@ -91,11 +91,6 @@ int key_last;
 uint8_t Student_Judge_Send_Data[] = "FUCK YOU";
 														 
 int Judge_Data_Send_Update;
-														 
-void Move_Step(int Step)
-{
-	//Location_x[Judge_Num_Set] = 
-}	
 
 void Judge_Send_Data_Update(uint8_t* Graphic_Update_Name)
 {
@@ -105,7 +100,6 @@ void Judge_Send_Data_Update(uint8_t* Graphic_Update_Name)
 	Judge_Data_Send_To_Client(&DJI_Judge,0x0110,DJI_Judge.DJI_Judge_Send_Msg.Judge_Character_Client.Judge_Character_Data,Graphic_character_Long);	
 }
 
-//uint8_t Leida_Data[14] = {}
 int Show_Num;
 
 void Judge_Chassis_Mode_Show_Add(Chassis_Mode_Judge_Msg_Show_t* Judge_Msg_Show,int Locate_X,int Locate_Y)
@@ -176,25 +170,25 @@ void Judge_Vision_Show_Set(int Vision_flag,int Locate_X,int Locate_Y)
 
 void Judge_Super_C_Show_Add(Super_C_Judge_Msg_Show_t* Super_C_Judge_Msg_Show,int Locate_X,int Locate_Y)
 {
-		Super_C_Judge_Msg_Show->Super_C_Limit = (int)((float)(Super_C_Judge_Msg_Show->Super_C_Msg_Show->Voilt_C) / (float)(Super_C_Judge_Msg_Show->Super_C_Msg_Show->Voilt_In) * 100.00f);
-		Judge_Character_Data_Set(&DJI_Judge.DJI_Judge_Send_Msg.Judge_Character_Client.Judge_client_custom_character,Super_C_Judge_Msg_Show->Super_C_Name,\
-		Character,Graphic_Add,Judge_Super_C_Show_Floor,3,15,14,2,Locate_X,Locate_Y,Super_C_Judge_Msg_Show->Super_C_Word);
-		Judge_Data_Send_To_Client(&DJI_Judge,0x0110,DJI_Judge.DJI_Judge_Send_Msg.Judge_Character_Client.Judge_Character_Data,Graphic_character_Long);		
-		Judge_Word_Data_Set(&DJI_Judge.DJI_Judge_Send_Msg.Judge_Graphic_Client_Single.Word_data_struct,Judge_Test_Graphic_Name,\
-		Integer,Graphic_Add,Judge_Super_C_Show_Floor,3,15,14,2,Locate_X + 183,Locate_Y,0,Super_C_Judge_Msg_Show->Super_C_Limit);		
-		Judge_Data_Send_To_Client(&DJI_Judge,0x0110,DJI_Judge.DJI_Judge_Send_Msg.Judge_Graphic_Client_Single.Judge_client_custom_graphic_single_Data,15);		
+//		Super_C_Judge_Msg_Show->Super_C_Limit = (int)((float)(Super_C_Judge_Msg_Show->Super_C_Msg_Show->Voilt_C) / (float)(Super_C_Judge_Msg_Show->Super_C_Msg_Show->Voilt_In) * 100.00f);
+//		Judge_Character_Data_Set(&DJI_Judge.DJI_Judge_Send_Msg.Judge_Character_Client.Judge_client_custom_character,Super_C_Judge_Msg_Show->Super_C_Name,\
+//		Character,Graphic_Add,Judge_Super_C_Show_Floor,3,15,14,2,Locate_X,Locate_Y,Super_C_Judge_Msg_Show->Super_C_Word);
+//		Judge_Data_Send_To_Client(&DJI_Judge,0x0110,DJI_Judge.DJI_Judge_Send_Msg.Judge_Character_Client.Judge_Character_Data,Graphic_character_Long);		
+//		Judge_Word_Data_Set(&DJI_Judge.DJI_Judge_Send_Msg.Judge_Graphic_Client_Single.Word_data_struct,Judge_Test_Graphic_Name,\
+//		Integer,Graphic_Add,Judge_Super_C_Show_Floor,3,15,14,2,Locate_X + 183,Locate_Y,0,Super_C_Judge_Msg_Show->Super_C_Limit);		
+//		Judge_Data_Send_To_Client(&DJI_Judge,0x0110,DJI_Judge.DJI_Judge_Send_Msg.Judge_Graphic_Client_Single.Judge_client_custom_graphic_single_Data,15);		
 
 }
 
 void Judge_Super_C_Show_Set(Super_C_Judge_Msg_Show_t* Super_C_Judge_Msg_Show,int Locate_X,int Locate_Y)
 {
-		Super_C_Judge_Msg_Show->Super_C_Limit = (int)(((float)(Super_C_Judge_Msg_Show->Super_C_Msg_Show->Voilt_C) - 1500.00f) / ((float)(Super_C_Judge_Msg_Show->Super_C_Msg_Show->Voilt_In) - 1500.00f) * 100.00f);
-		Judge_Character_Data_Set(&DJI_Judge.DJI_Judge_Send_Msg.Judge_Character_Client.Judge_client_custom_character,Super_C_Judge_Msg_Show->Super_C_Name,\
-		Character,Graphic_Change,Judge_Super_C_Show_Floor,3,15,14,2,Locate_X,Locate_Y,Super_C_Judge_Msg_Show->Super_C_Word);
-		Judge_Data_Send_To_Client(&DJI_Judge,0x0110,DJI_Judge.DJI_Judge_Send_Msg.Judge_Character_Client.Judge_Character_Data,Graphic_character_Long);		
-		Judge_Word_Data_Set(&DJI_Judge.DJI_Judge_Send_Msg.Judge_Graphic_Client_Single.Word_data_struct,Judge_Test_Graphic_Name,\
-		Integer,Graphic_Change,Judge_Super_C_Show_Floor,3,15,14,2,Locate_X + 183,Locate_Y,0,Super_C_Judge_Msg_Show->Super_C_Limit);		
-		Judge_Data_Send_To_Client(&DJI_Judge,0x0110,DJI_Judge.DJI_Judge_Send_Msg.Judge_Graphic_Client_Single.Judge_client_custom_graphic_single_Data,15);		
+//		Super_C_Judge_Msg_Show->Super_C_Limit = (int)(((float)(Super_C_Judge_Msg_Show->Super_C_Msg_Show->Voilt_C) - 1500.00f) / ((float)(Super_C_Judge_Msg_Show->Super_C_Msg_Show->Voilt_In) - 1500.00f) * 100.00f);
+//		Judge_Character_Data_Set(&DJI_Judge.DJI_Judge_Send_Msg.Judge_Character_Client.Judge_client_custom_character,Super_C_Judge_Msg_Show->Super_C_Name,\
+//		Character,Graphic_Change,Judge_Super_C_Show_Floor,3,15,14,2,Locate_X,Locate_Y,Super_C_Judge_Msg_Show->Super_C_Word);
+//		Judge_Data_Send_To_Client(&DJI_Judge,0x0110,DJI_Judge.DJI_Judge_Send_Msg.Judge_Character_Client.Judge_Character_Data,Graphic_character_Long);		
+//		Judge_Word_Data_Set(&DJI_Judge.DJI_Judge_Send_Msg.Judge_Graphic_Client_Single.Word_data_struct,Judge_Test_Graphic_Name,\
+//		Integer,Graphic_Change,Judge_Super_C_Show_Floor,3,15,14,2,Locate_X + 183,Locate_Y,0,Super_C_Judge_Msg_Show->Super_C_Limit);		
+//		Judge_Data_Send_To_Client(&DJI_Judge,0x0110,DJI_Judge.DJI_Judge_Send_Msg.Judge_Graphic_Client_Single.Judge_client_custom_graphic_single_Data,15);		
 }
 
 void Robot_Mode_Judge_Show(Judge_Show_Msg_t* Judge_Show_Mode)
@@ -209,16 +203,11 @@ static float Judge_Angle_Get;
 int Data_Lennnn;
 int super_C_Num_Test;
 
-void Judge_Get_Stydent_Msg()
-{
-	
-}
-
 void Judge_Task(void *pvParameters)
 {
 	vTaskDelay(500);
 	
-	Judge_Show_Msg.Chassis_Mode_Judge_Msg_Show.Chassis_Mode_Show = Return_Chassis_Mode_Add();
+//	Judge_Show_Msg.Chassis_Mode_Judge_Msg_Show.Chassis_Mode_Show = Return_Chassis_Mode_Add();
 	Judge_Show_Msg.Gimbal_Mode_Judge_Msg_Show.Gimbal_Mode_Show = Return_Gimbal_Mode_Add();
 	Judge_Show_Msg.Super_C_Judge_Msg_Show.Super_C_Msg_Show = Get_Cap_Data();
 	

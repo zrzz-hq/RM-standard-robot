@@ -194,38 +194,12 @@ void Gimbal_Data_Update(Gimbal_t* Gimbal_Data)
 void Gimbal_Mode_Set(Gimbal_t* Mode_Set)
 {
 	
-	//遥控器无操作时间统计
-//	if(DJI_RC_Motion_Check())
-//	{
-//			RC_Motionless_Count = 0;
-//	}
-//	else
-//	{
-//			if(RC_Motionless_Count <= Gimbal_Motionless_Time)
-//				RC_Motionless_Count ++;
-//	}
-//	
-//	//模式切换时，清空计数器
-//	if(Mode_Set->Gimbal_Rc_Ctrl_Data->rc.s2 != Last_RC)
-//	{
-//			RC_Motionless_Count = 0;
-//	}
-//	
-//	//底盘小陀螺时，云台不能进入不动模式
-//	if((*Return_Chassis_Mode_Add() == CHASSIS_SPIN_LEFT)||(*Return_Chassis_Mode_Add()== Chassis_Spin_Right))
-//	{
-//			RC_Motionless_Count = 0;
-//	}
-//	
-//	
-//	//如果底盘是两点移动模式，云台不动。
-//	//如果云台是Spin模式且长时间没有操作，那么云台不动
-//	if(((RC_Motionless_Count > Gimbal_Motionless_Time)&&(Mode_Set->Gimbal_Mode == GIMBAL_SPIN))||(*Return_Chassis_Mode_Add()==CHASSIS_TRANSLATE))
-//	{
-//			Mode_Set->Gimbal_Mode = GIMBAL_MOTIONLESS;		
-//	}
-//	else
-//	{
+		if(Mode_Set->Gimbal_Yaw_No_Opt_Time==GIMBAL_MAX_NO_OPT_TIME&&Mode_Set->Gimbal_Pitch_No_Opt_Time==GIMBAL_MAX_NO_OPT_TIME&&!Is_Chassis_Spin())
+		{
+				Mode_Set->Gimbal_Mode = GIMBAL_MOTIONLESS;
+		}
+		else
+		{
 			if(Mode_Set->Gimbal_Mode==GIMBAL_INIT&&Mode_Set->Gimbal_Init_Time<GIMBAL_MAX_INIT_TIME)
 			{
 					if(!(Mode_Set->Gimbal_Pitch_Init_Finish_Flag&&Mode_Set->Gimbal_Yaw_Init_Finish_Flag))
@@ -252,10 +226,7 @@ void Gimbal_Mode_Set(Gimbal_t* Mode_Set)
 			{
 					Mode_Set->Gimbal_Mode = GIMBAL_INIT;
 			}
-			
-//	}
-	
-//	Last_RC = Mode_Set->Gimbal_Rc_Ctrl_Data->rc.s2;
+		}
 }
 
 void Gimbal_Mode_Change(Gimbal_t* Mode_Change)
@@ -330,6 +301,11 @@ void Rc_Data_To_Yaw_Delta_Angle(Gimbal_t* Gimbal_Rc,float* Delta_Angle)
 		float Gimbal_Yaw_Mouse_Add_Angle = (float)(Gimbal_Rc->Gimbal_Rc_Ctrl_Data->mouse.x)/Gimbal_Rc->Gimbal_Yaw_Mouse_Sen;
 	
 		*Delta_Angle = Gimbal_Yaw_Rc_Add_Angle+Gimbal_Yaw_Mouse_Add_Angle; 
+		//判断通道无操作的时间
+		if(*Delta_Angle == 0&&Gimbal_Rc->Gimbal_Yaw_No_Opt_Time<GIMBAL_MAX_NO_OPT_TIME)
+						Gimbal_Rc->Gimbal_Yaw_No_Opt_Time++;
+		else if(*Delta_Angle!=0)
+				Gimbal_Rc->Gimbal_Yaw_No_Opt_Time=0;
 }
 
 void Rc_Data_To_Pitch_Delta_Angle(Gimbal_t* Gimbal_Rc,float* Delta_Angle)
@@ -338,6 +314,11 @@ void Rc_Data_To_Pitch_Delta_Angle(Gimbal_t* Gimbal_Rc,float* Delta_Angle)
 		float Gimbal_Pitch_Mouse_Add_Angle = (float)(Gimbal_Rc->Gimbal_Rc_Ctrl_Data->mouse.y)/Gimbal_Rc->Gimbal_Pitch_Mouse_Sen;
 	
 		*Delta_Angle = Gimbal_Pitch_Rc_Add_Angle+Gimbal_Pitch_Mouse_Add_Angle; 
+		//判断无操作的时间
+		if(*Delta_Angle == 0&&Gimbal_Rc->Gimbal_Pitch_No_Opt_Time<GIMBAL_MAX_NO_OPT_TIME)
+						Gimbal_Rc->Gimbal_Pitch_No_Opt_Time++;
+		else if(*Delta_Angle!=0)
+				Gimbal_Rc->Gimbal_Pitch_No_Opt_Time=0;
 }
 
 //云台陀螺仪控制，无限制模式
@@ -446,6 +427,12 @@ void Gimbal_Control_Data_Get(Gimbal_t* Gimbal_Control_Get)
 		case GIMBAL_SPIN:
 			Rc_Data_To_Yaw_Delta_Angle(Gimbal_Control_Get,&Yaw_Add_Angle);
 			Rc_Data_To_Pitch_Delta_Angle(Gimbal_Control_Get,&Pitch_Add_Angle);
+			break;
+		case GIMBAL_MOTIONLESS:
+			Rc_Data_To_Yaw_Delta_Angle(Gimbal_Control_Get,&Yaw_Add_Angle);
+			Rc_Data_To_Pitch_Delta_Angle(Gimbal_Control_Get,&Pitch_Add_Angle);
+			Yaw_Add_Angle = 0;
+			Pitch_Add_Angle = 0;
 			break;
 		case GIMBAL_IMU_CONTROL:
 			Rc_Data_To_Yaw_Delta_Angle(Gimbal_Control_Get,&Yaw_Add_Angle);

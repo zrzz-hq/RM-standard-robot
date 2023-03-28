@@ -21,7 +21,7 @@
 #define INS_Task_H
 #include "main.h"
 
-//#define USE_IST8310 //是否使用IST8310磁力计，不使用注释定义
+#define USE_IST8310 //是否使用IST8310磁力计，不使用注释定义
 
 //#define MPU6500_USE_DATA_READY_EXIT //是否使用MPU6500的外部中断，不使用注释定义
 

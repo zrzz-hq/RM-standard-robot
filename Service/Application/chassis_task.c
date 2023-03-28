@@ -70,6 +70,10 @@ void Chassis_Add_Variable(Chassis_t* Chassis_Variable)
 //		Add_Variable_By_Name_In_Task("Chassis WZ Rc",&Chassis_Variable->Chassis_RC_Ctl_Data->rc.ch4,VAR_TYPE_INT16,1,0);
 		
 		Add_Variable_By_Name_In_Task("Chassis Mode",&Chassis_Variable->Chassis_Mode,VAR_TYPE_UINT8,1);
+		
+		Add_Variable_By_Name_In_Task("Chassis X Reverse",&Chassis_Variable->Chassis_X_Reverse_Flag,VAR_TYPE_UINT8,0);
+		Add_Variable_By_Name_In_Task("Chassis Y Reverse",&Chassis_Variable->Chassis_Y_Reverse_Flag,VAR_TYPE_UINT8,0);
+		Add_Variable_By_Name_In_Task("Chassis WZ Reverse",&Chassis_Variable->Chassis_WZ_Reverse_Flag,VAR_TYPE_UINT8,0);
 }
 
 void Chassis_Init(Chassis_t* Chassis_Data_Init)
@@ -116,22 +120,22 @@ void Chassis_Init(Chassis_t* Chassis_Data_Init)
 
 }
 
-float Ramp_Calc(float Min,float Max,float Setup_Time,float Current_Time)
+float Ramp_Calc(float Start_Value,float End_Value,float Setup_Time,float Current_Time)
 {
 		float Out = 0;
-		if(Max>Min)
+		if(End_Value>Start_Value)
 		{
 			if(Current_Time>=Setup_Time)
-				Out = Max;
+				Out = End_Value;
 			else if(Current_Time>=0&&Current_Time<Setup_Time)
-				Out = (Max-Min)/Setup_Time*Current_Time+Min;
+				Out = (End_Value-Start_Value)/Setup_Time*Current_Time+Start_Value;
 		}
 		else
 		{
 				if(Current_Time>=Setup_Time)
-					Out = Min;
+					Out = End_Value;
 				else if(Current_Time>=0&&Current_Time<Setup_Time)
-					Out = Min-(Min-Max)/Setup_Time*Current_Time;
+					Out = Start_Value-(Start_Value-End_Value)/Setup_Time*Current_Time;
 		}
 		return Out;
 }
@@ -139,7 +143,7 @@ float Ramp_Calc(float Min,float Max,float Setup_Time,float Current_Time)
 void Rc_Data_To_XY_Speed_Set(Chassis_t* Chassis_Rc,float* Speed_X,float* Speed_Y)
 {
 		//遥控器通道值转化为速度设定值
-		float Chassis_X_Rc_Speed_Set = (float)RC_DeadBand_Limit(Chassis_Rc->Chassis_RC_Ctl_Data->rc.ch0,CHASSIS_RC_DEADLINE)/660*Chassis_Rc->Chassis_X_Max_Speed;
+		float Chassis_X_Rc_Speed_Set = -(float)RC_DeadBand_Limit(Chassis_Rc->Chassis_RC_Ctl_Data->rc.ch0,CHASSIS_RC_DEADLINE)/660*Chassis_Rc->Chassis_X_Max_Speed;
 		float Chassis_Y_Rc_Speed_Set = (float)RC_DeadBand_Limit(Chassis_Rc->Chassis_RC_Ctl_Data->rc.ch1,CHASSIS_RC_DEADLINE)/660*Chassis_Rc->Chassis_Y_Max_Speed;
 		//按键计时
 		if(Chassis_Rc->Chassis_RC_Ctl_Data->key.v & CHASSIS_FORWARD_KEY)
@@ -186,9 +190,9 @@ void Rc_Data_To_XY_Speed_Set(Chassis_t* Chassis_Rc,float* Speed_X,float* Speed_Y
 						Chassis_Rc->Chassis_Move_Right_Key_Time--;
 		}
 		//按键斜波函数，防止启动停止过快导致漂移
-		float Chassis_X_Key_Speed_Set = Ramp_Calc(0,Chassis_Rc->Chassis_Y_Max_Speed,1000,Chassis_Rc->Chassis_Forward_Key_Time)
+		float Chassis_Y_Key_Speed_Set = Ramp_Calc(0,Chassis_Rc->Chassis_Y_Max_Speed,1000,Chassis_Rc->Chassis_Forward_Key_Time)
 																	 +Ramp_Calc(0,-Chassis_Rc->Chassis_Y_Max_Speed,1000,Chassis_Rc->Chassis_Backward_Key_Time);
-		float Chassis_Y_Key_Speed_Set = Ramp_Calc(0,Chassis_Rc->Chassis_Y_Max_Speed,1000,Chassis_Rc->Chassis_Move_Left_Key_Time)
+		float Chassis_X_Key_Speed_Set = Ramp_Calc(0,Chassis_Rc->Chassis_Y_Max_Speed,1000,Chassis_Rc->Chassis_Move_Left_Key_Time)
 																	 +Ramp_Calc(0,-Chassis_Rc->Chassis_Y_Max_Speed,1000,Chassis_Rc->Chassis_Move_Right_Key_Time);
 		//按键操作的优先级高
 		if(Chassis_X_Key_Speed_Set)
@@ -200,6 +204,7 @@ void Rc_Data_To_XY_Speed_Set(Chassis_t* Chassis_Rc,float* Speed_X,float* Speed_Y
 			*Speed_Y = Chassis_Y_Key_Speed_Set;
 		else
 			*Speed_Y = Chassis_Y_Rc_Speed_Set;
+	
 }
 
 void Rc_Data_To_WZ_Speed_Set(Chassis_t* Chassis_Rc,float* Speed_WZ)
@@ -236,6 +241,8 @@ void Rc_Data_To_WZ_Speed_Set(Chassis_t* Chassis_Rc,float* Speed_WZ)
 			*Speed_WZ = Chassis_WZ_Key_Speed_Set;
 		else
 			*Speed_WZ = Chassis_WZ_Rc_Speed_Set;
+		
+		
 }
 
 void Chassis_Mode_Zero(Chassis_t* Chassis_Zero_Set)
@@ -394,12 +401,18 @@ void Chassis_Control_Data_Get(Chassis_t* Chassis_Control_Data)
 			
 		}
 		
+		if(Chassis_Control_Data->Chassis_X_Reverse_Flag)
+			Chassis_Control_Data->Chassis_X_Speed_Set = -Chassis_Control_Data->Chassis_X_Speed_Set;
+		if(Chassis_Control_Data->Chassis_Y_Reverse_Flag)
+			Chassis_Control_Data->Chassis_Y_Speed_Set = -Chassis_Control_Data->Chassis_Y_Speed_Set;
+		if(Chassis_Control_Data->Chassis_WZ_Reverse_Flag)
+			Chassis_Control_Data->Chassis_WZ_Speed_Set = -Chassis_Control_Data->Chassis_WZ_Speed_Set;
+		
 		Chassis_Speed_To_Wheel_Speed(Chassis_Control_Data);
 			
 }
 
 /*****底盘模式更新函数*****/
-extern int Check_Motionless_Flag;
 void Chassis_Mode_Set(Chassis_t* Chassis_Mode)
 {
 //			//如果云台处于不动状态那么底盘进入不动状态
@@ -506,19 +519,9 @@ void Chassis_Data_Update(Chassis_t* Chassis_Update)
 	Chassis_Update->Chassis_Motor_Speed_Get[2]=Chassis_Update->Chassis_Motor_Msg_Get[2]->Speed*CHASSIS_3508_RPM_TO_WHEEL_SPEED;
 	Chassis_Update->Chassis_Motor_Speed_Get[3]=Chassis_Update->Chassis_Motor_Msg_Get[3]->Speed*CHASSIS_3508_RPM_TO_WHEEL_SPEED;
 	//裁判系统数据更新
-	Chassis_Update->Chassis_Power_Data_Get = (float)Chassis_Update->Chassis_Judge_Msg_Get->Judge_power_heat_data.chassis_power;
-	Chassis_Update->Chassis_Heat_Data_Get = (int)Chassis_Update->Chassis_Judge_Msg_Get->Judge_power_heat_data.chassis_power_buffer;
-	//Chassis_Update->Chassis_Max_Power_Data_Get = (int)Chassis_Update->Chassis_Judge_Msg_Get->Judge_game_robot_status.max_chassis_power;
-	if(Chassis_Update->Chassis_Heat_Data_Get > 60)
-	{
-			Chassis_Update->Chassis_Max_Heat_Data_Get = Chassis_Max_Heat_Feipo;
-	}
-	else
-	{
-			Chassis_Update->Chassis_Max_Heat_Data_Get = Chassis_Max_Heat_Normal;		
-	}
-	//超级电容数据更新
-	
+	Chassis_Update->Chassis_Power = Chassis_Update->Chassis_Judge_Msg_Get->Judge_power_heat_data.chassis_power;
+	Chassis_Update->Chassis_Power_Buffer = Chassis_Update->Chassis_Judge_Msg_Get->Judge_power_heat_data.chassis_power_buffer;
+	Chassis_Update->Chassis_Max_Power = Chassis_Update->Chassis_Judge_Msg_Get->Judge_game_robot_status.max_HP;
 }
 
 void Chassis_Task(void *pvParameters)
@@ -545,4 +548,9 @@ void Chassis_Task(void *pvParameters)
 Chassis_Mode_t* Return_Chassis_Mode_Add(void)
 {
 		return &Chassis.Chassis_Mode;
+}
+
+uint8_t Is_Chassis_Spin()
+{
+		return Chassis.Chassis_Mode==CHASSIS_SPIN_LEFT||Chassis.Chassis_Mode==CHASSIS_SPIN_RIGHT;
 }

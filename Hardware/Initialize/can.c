@@ -220,6 +220,26 @@ void CAN2_Motor_Control(int16_t stdid,u16 num1,u16 num2,u16 num3,u16 num4)
    CAN_Transmit(CAN2,&tx_message);
 }
 
+void CAN2_SuperCap_Control(int16_t Stdid,uint16_t num1,uint16_t num2,uint16_t num3,uint16_t num4)
+{
+    CanTxMsg tx_message;
+    tx_message.RTR = CAN_RTR_DATA;  //数据帧
+    tx_message.IDE = CAN_ID_STD;    //标准帧
+    tx_message.DLC = 0x08;          //帧长度为   
+	
+		tx_message.StdId = Stdid;	
+		tx_message.Data[0] =(uint8_t)((num1>> 8)&0xff);
+		tx_message.Data[1] =(uint8_t)(num1&0xff);
+	  tx_message.Data[2] =(uint8_t)((num2>> 8)&0xff);
+		tx_message.Data[3] =(uint8_t)(num2&0xff);
+	  tx_message.Data[4] =(uint8_t)((num3>> 8)&0xff);
+		tx_message.Data[5] =(uint8_t)(num3&0xff);
+		tx_message.Data[6] =(uint8_t)((num4>> 8)&0xff);
+		tx_message.Data[7] =(uint8_t)(num4&0xff);
+	 	
+    CAN_Transmit(CAN2,&tx_message);
+}
+
 /*************************************************************************
                           CAN1_RX0_IRQHandler
 描述：CAN1的接收中断函数
@@ -360,12 +380,6 @@ void CAN1_Msg_Parser(CanRxMsg *Can1_Rx_Msg) 	//传入接收到数据的指针
 					ALL_Motor_Msg[7].Current=(Can1_Rx_Msg->Data[4] << 8) + (Can1_Rx_Msg->Data[5]);	
 					ALL_Motor_Msg[7].Temp=(Can1_Rx_Msg->Data[6]);
 			break;	
-		case 0x211:				
-					Super_C_Msg.Voilt_In=(uint16_t)((Can1_Rx_Msg->Data[1] << 8) + (Can1_Rx_Msg->Data[0]));//输入电压
-					Super_C_Msg.Voilt_C=(uint16_t)((Can1_Rx_Msg->Data[3] << 8) + (Can1_Rx_Msg->Data[2]));//电容电压
-					Super_C_Msg.Current_In=(uint16_t)((Can1_Rx_Msg->Data[5] << 8) + (Can1_Rx_Msg->Data[4]));//输入电流	
-					Super_C_Msg.Target_power=((uint16_t)(Can1_Rx_Msg->Data[7] << 8) + (Can1_Rx_Msg->Data[6]));//目标功率	
-			break;
 		
 		}
 }
@@ -423,7 +437,12 @@ void CAN2_Msg_Parser(CanRxMsg *Can2_Rx_Msg) 	//传入接收到数据的指针
 					ALL_Motor_Msg[15].Speed=(Can2_Rx_Msg->Data[2] << 8) + (Can2_Rx_Msg->Data[3]);//电机1的速度值
 					ALL_Motor_Msg[15].Current=(Can2_Rx_Msg->Data[4] << 8) + (Can2_Rx_Msg->Data[5]);	
 					ALL_Motor_Msg[15].Temp=(Can2_Rx_Msg->Data[6]);
-			break;	
+			break;
+		case 0x030:				
+					Super_C_Msg.Cap_V=(int16_t)((uint16_t)(Can2_Rx_Msg->Data[0] << 8) + (Can2_Rx_Msg->Data[1]));//输入电压
+					Super_C_Msg.Cap_I=(int16_t)((uint16_t)(Can2_Rx_Msg->Data[2] << 8) + (Can2_Rx_Msg->Data[3]));//电容电压
+					Super_C_Msg.Cap_State=(uint16_t)((Can2_Rx_Msg->Data[4] << 8) + (Can2_Rx_Msg->Data[5]));//输入电流		
+			break;
 		
 		}
 }

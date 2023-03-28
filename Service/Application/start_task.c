@@ -19,6 +19,7 @@
 #include "shoot_task.h"
 #include "Check_Task.h"
 #include "usb_task.h"
+#include "supercap_task.h"
 
 #include "gimbal_task.h"
 #include "chassis_task.h"
@@ -72,12 +73,11 @@ static TaskHandle_t UsbTask_Handler;
 #define CHECK_STK_SIZE 512
 static TaskHandle_t CheckTask_Handler;
 
-
 void Start_Task(void *pvParameters)
 {
     taskENTER_CRITICAL();
-
-		xTaskCreate((TaskFunction_t)UserTast,
+		
+		xTaskCreate((TaskFunction_t)UserTask,
 		(const char *)"UserTast",
 		(uint16_t)USER_STK_SIZE,
 		(void *)NULL,
@@ -110,7 +110,14 @@ void Start_Task(void *pvParameters)
 	  (uint16_t)CHASSIS_STK_SIZE,
 		(void *)NULL,
 		(UBaseType_t)CHASSIS_TASK_PRIO,
-		(TaskHandle_t *)&Gimbaldask_Handler);		
+		(TaskHandle_t *)&Gimbaldask_Handler);	
+
+		xTaskCreate((TaskFunction_t)supercap_task,
+	  (const char *)"SuperCap_Task",
+	  (uint16_t)SUPERCAP_STK_SIZE,
+		(void *)NULL,
+		(UBaseType_t)SUPERCAP_TASK_PRIO,
+		(TaskHandle_t *)&SuperCapTask_Handler);	
 	
     vTaskDelete(StartTask_Handler); //删除开始任务
     taskEXIT_CRITICAL();            //退出临界区

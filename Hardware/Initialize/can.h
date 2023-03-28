@@ -19,10 +19,9 @@ typedef enum
 //电容相关信息
 typedef struct 
 {
-	uint16_t Voilt_In;//输入电压
-	uint16_t Voilt_C;//电容电压
-	uint16_t Current_In;//输入电流
-	uint16_t Target_power;//目标功率
+	int16_t Cap_I;//电容电流
+	int16_t Cap_V;//电容电压
+	uint16_t Cap_State;//电容状态
 }Super_C_Msg_t;
 
 typedef struct 
@@ -45,7 +44,7 @@ void CAN2_Motor_Control(int16_t Stdid,uint16_t Num1,uint16_t Num2,uint16_t Num3,
 void CAN1_Msg_Parser(CanRxMsg *Can_Rx_Msg);
 void CAN2_Msg_Parser(CanRxMsg *Can_Rx_Msg);
 
-void CAN1_Super_C_Send(int16_t Stdid,uint16_t data);
+void CAN2_SuperCap_Control(int16_t Stdid,uint16_t num1,uint16_t num2,uint16_t num3,uint16_t num4);
 
 Motor_Msg_t *Get_DJI_Motor_Data(CAN_Set_t CAN_Set,uint16_t Motor_Stdid);
 Super_C_Msg_t *Get_Cap_Data(void);

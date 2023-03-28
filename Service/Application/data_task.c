@@ -65,7 +65,7 @@ static Data_Res_t Load_Store_Variable_Val(Variable_t* Var,uint8_t Load)
 								size_t Size_Read = ef_get_env_blob(Var->Var_Name,Data_Buff,Buff_Len,&Size_Saved);
 								if(Size_Saved == Size_Read&&Size_Read==Buff_Len)
 								{
-									memcpy(Var->Var_Addr,Data_Buff,Buff_Len);
+										memcpy(Var->Var_Addr,Data_Buff,Buff_Len);
 								}
 								else
 								{

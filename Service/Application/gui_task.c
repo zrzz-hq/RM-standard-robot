@@ -1,16 +1,4 @@
-/**
-  ****************************(C) COPYRIGHT 2020 HRBUST_AIR****************************
-  * @file    oled_task.c
-	* @brief   OLED显示屏任务           
-  * @author  JackyJuu , HRBUST_AIR_TEAM , website:www.airclub.tech
-	* @Note 	 包括显示，按键读取
-  * @version V1.0.0
-  * @history
-  *  Version    Date            Author          Modification
-  *  V1.0.0     11-18-2020      JackyJuu            Done
-  ****************************(C) COPYRIGHT 2020 HRBUST_AIR****************************
-	* @describe OLED显示屏任务
-*/
+
 #include "oled.h"
 
 #include "gui_task.h"
@@ -209,10 +197,7 @@ void del_main_menu()
 void gui_start()
 {
 		//绘制启动图标，打开显示
-		oled_clear(Pen_Clear);
-		oled_LOGO();
-		oled_display_on();
-		oled_refresh_gram();
+		oled_init();
 		//创建主菜单
 		create_main_menu();
 		//恢复任务
@@ -254,9 +239,6 @@ void gui_task(void *pvParameters)
 		while(1)
 		{
 				lv_task_handler();
-				taskENTER_CRITICAL();
-				oled_refresh_gram();
-				taskEXIT_CRITICAL();
 				vTaskDelay(25);
 		}
 }
