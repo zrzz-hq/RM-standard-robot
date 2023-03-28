@@ -609,25 +609,25 @@ static void lv_base_msgbox_destructor(const lv_obj_class_t* class_p, lv_obj_t* o
 		
 }
 /****************************************************/
-void lv_exec_msgbox_run(lv_obj_t* obj,uint8_t cancel_able)
-{
-    lv_exec_msgbox_t* msgbox = (lv_exec_msgbox_t*)obj;
-    if (!cancel_able)
-        lv_base_win_disable_close_btn(obj);
-    lv_thread_resume(msgbox->thread);
-}
 
-static uint8_t lv_exec_msgbox_thread(lv_obj_t* obj)
+static void lv_exec_msgbox_async_cb(void* obj)
 {
-		lv_exec_msgbox_t* msgbox = (lv_exec_msgbox_t*)lv_obj_get_user_data(obj);
+		lv_exec_msgbox_t* msgbox = (lv_exec_msgbox_t*)obj;
     void (*exec)(void*) = (void (*)(void*))msgbox->exec;
     if (exec)
     {
         exec(msgbox);
 				lv_base_win_enable_close_btn((lv_obj_t*)msgbox);
-        return 1;
     }
-    return 0;
+}
+
+void lv_exec_msgbox_run(lv_obj_t* obj,uint8_t cancel_able)
+{
+    lv_refr_now(NULL);
+		lv_exec_msgbox_t* msgbox = (lv_exec_msgbox_t*)obj;
+    if (!cancel_able)
+        lv_base_win_disable_close_btn(obj);
+    lv_async_call(lv_exec_msgbox_async_cb,obj);
 }
 
 lv_obj_t* lv_exec_msgbox_create(lv_obj_t* parent, const char* title, const char* btn_map[],void* exec, void* user_data, void* cb)
@@ -650,8 +650,7 @@ lv_obj_t* lv_exec_msgbox_create(lv_obj_t* parent, const char* title, const char*
 
 static void lv_exec_msgbox_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj)
 {
-		lv_exec_msgbox_t* msgbox = (lv_exec_msgbox_t*)obj;
-		msgbox->thread = lv_thread_create(obj, lv_exec_msgbox_thread, obj, 0);
+		
 }
 static void lv_exec_msgbox_destructor(const lv_obj_class_t* class_p, lv_obj_t* obj)
 {

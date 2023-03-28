@@ -81,8 +81,7 @@ typedef struct
 {
 	lv_base_msgbox_t msgbox;
 	void* exec;
-	lv_obj_t* thread;
-	
+//	lv_obj_t* thread;
 }lv_exec_msgbox_t;
 
 typedef struct

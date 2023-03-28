@@ -77,7 +77,7 @@ DRESULT disk_read (
 					SD_State=SD_ReadMultiBlocks(buff,sector*SDCardInfo.CardBlockSize,SDCardInfo.CardBlockSize,count);
 
 				if(SD_State!=SD_OK)
-					return RES_OK;
+					return RES_ERROR;
 				
 				while(SD_WaitReadOperation()!=SD_OK);
 				return RES_OK;
@@ -114,7 +114,7 @@ DRESULT disk_write (
 					SD_State=SD_WriteMultiBlocks((uint8_t *)buff,sector*SDCardInfo.CardBlockSize,SDCardInfo.CardBlockSize,count);
 				
 				if(SD_State!=SD_OK)
-					return RES_PARERR;
+					return RES_ERROR;
 				
 				while(SD_WaitWriteOperation()!=SD_OK);
 				return RES_OK;
