@@ -76,13 +76,16 @@ typedef struct
 		bool_t Read_Only;
 }Variable_t;
 
-typedef enum
+typedef struct
 {
-		OPT_END,
-		OPT_NEXT,
-		OPT_PREV,
-		OPT_NONE
-}Variable_Iterate_Opt_t;
+		ListItem_t* List_Item;
+		Variable_t* Var;
+		uint8_t Size;
+		uint16_t No_Change_Time;
+		uint16_t Max_No_Change_Time;
+		void(*CallBack)(Variable_t*);
+		void* SnapShort;
+}Variable_Trace_t;
 
 typedef struct
 {
@@ -123,6 +126,7 @@ typedef __packed struct
 typedef struct
 {
 		List_t Var_List;
+		List_t Trace_List;
 		uint8_t ReadOnly_Count;
 	
 		Modify_Stack_t Modify_Stack;
@@ -145,7 +149,6 @@ Data_Res_t Load_Variables_From_File(void);
 Data_Res_t Create_Variable_DataBase(void);
 
 
-QueueHandle_t Get_Msg_Queue(void);
 double Get_Variable_Val_By_Name_In_Task(char* Var_Name);
 double Get_Variable_Val_By_Ptr_In_Task(Variable_t* Var);
 
@@ -154,17 +157,18 @@ Data_Res_t Set_Variable_Val_By_Ptr_In_Task(Variable_t* Var,double New_Val);
 
 Data_Res_t Add_Variable_By_Name_In_Task(char* Var_Name,void* Var_Addr,Variable_Type_t Var_Type,bool_t Read_Only);
 Data_Res_t Add_Variable_By_Ptr_In_Task(Variable_t* Var,void* Var_Addr,Variable_Type_t Var_Type,bool_t Read_Only);
+Data_Res_t Trace_Variable_By_Ptr_In_Task(Variable_t* Var,uint16_t Max_Time,void* CallBack);
 
 Data_Res_t Undo_Modify_In_Task(void);
 Data_Res_t Redo_Modify_In_Task(void);
-Data_Res_t Init_DataFile(void);
+Data_Res_t Refresh_DataFile_In_Task(void);
 Data_Res_t Save_Data_To_SDCard(void);
 Data_Res_t Load_Data_From_SDCard(void);
 
 Variable_t* Get_First_Variable();
 Variable_t* Get_Prev_Variable(Variable_t* Var);
 Variable_t* Get_Next_Variable(Variable_t* Var);
+Variable_t* Iterate_All_Variable_In_Task(void* Usr_Data,int8_t(*CallBack)(Variable_t*,void* Usr_Data));
 
-void Data_Usr_Key_Handler(void);
 
 #endif 

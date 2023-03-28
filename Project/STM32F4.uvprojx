@@ -889,6 +889,11 @@
               <FileType>1</FileType>
               <FilePath>..\Service\Application\supercap_task.c</FilePath>
             </File>
+            <File>
+              <FileName>freertos_usr_lib.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Service\Application\freertos_usr_lib.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

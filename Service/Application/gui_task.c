@@ -16,6 +16,7 @@
 
 gui_t gui;
 TaskHandle_t GuiTask_Handler;
+TaskHandle_t GuiControlTask_Handler;
 
 static void sys_reset_wrapper(lv_obj_t* cont);
 static char* create_msg_by_res(char* msg_head, Data_Res_t res);
@@ -118,6 +119,15 @@ static void var_operation_handler(lv_obj_t* cont)
 		
 }
 
+void gui_usr_key_handler()
+{
+		if(GuiControlTask_Handler)
+		{
+			BaseType_t pxHigherPriorityTaskWoken;
+			vTaskNotifyGiveFromISR(GuiControlTask_Handler,&pxHigherPriorityTaskWoken);
+		}
+}
+
 void gui_task_init()
 {
 		//lvgl初始化及显示屏、按键初始化
@@ -137,23 +147,21 @@ void gui_task_init()
 	
 		//gui.data_msg_queue=Get_Msg_Queue();
 		gui.is_gui_start = 0;
+		Usr_Key_Register_Callback(gui_usr_key_handler);
 }
 
-void add_all_variable_item()
+int8_t get_all_variable_callback(Variable_t* var,void* usr_data)
 {
-		//uint16_t var_count = Get_Variable_Count();
-		Variable_t* var = Get_First_Variable();
-		while(var)
-		{
-				lv_obj_t* parent;
-				if(var->Read_Only)
-						parent = gui.view_var_page;
-				else
-						parent = gui.edit_var_page;
-				lv_menu_btn_cont_create(parent,var->Var_Name,var,var_operation_handler);
-				var = Get_Next_Variable(var);
-		}
+		lv_obj_t* parent;
+		if(var->Read_Only)
+				parent = gui.view_var_page;
+		else
+				parent = gui.edit_var_page;
+		lv_menu_btn_cont_create(parent,var->Var_Name,var,var_operation_handler);
+		return 1;
 }
+
+#define add_all_variable_item() Iterate_All_Variable_In_Task(NULL,get_all_variable_callback);
 
 void create_main_menu()
 {
@@ -175,7 +183,7 @@ void create_main_menu()
 		lv_menu_link_cont_create(gui.main_page,"View Variable",gui.view_var_page);
 		lv_menu_btn_cont_create(gui.main_page,"Load Data From Sdcard",Load_Data_From_SDCard,data_operation_handler);
 		lv_menu_btn_cont_create(gui.main_page,"Save Data To Sdcard",Save_Data_To_SDCard,data_operation_handler);
-		lv_menu_btn_cont_create(gui.main_page,"Init DataBase",Init_DataFile,data_operation_handler);
+		lv_menu_btn_cont_create(gui.main_page,"Refresh DataBase",Refresh_DataFile_In_Task,data_operation_handler);
 		lv_menu_btn_cont_create(gui.main_page,"Reset",0,sys_reset_wrapper);
 		
 		/*-------------------------------------------*/
@@ -219,11 +227,6 @@ void gui_stop()
 		gui.is_gui_start = 0;
 }
 
-uint8_t is_gui_start()
-{
-		return gui.is_gui_start;
-}
-
 void gui_sys_assert_fault_handler()
 {
 		if(lv_is_initialized())
@@ -246,10 +249,33 @@ void gui_task(void *pvParameters)
 TaskHandle_t* create_gui_task()
 {
 		xTaskCreate((TaskFunction_t)gui_task,          //任务函数
-						(const char *)"Data_Task",          //任务名称
+						(const char *)"Gui_Task",          //任务名称
 						(uint16_t)GUI_STK_SIZE,            //任务堆栈大小
 						(void *)NULL,                        //传递给任务函数的参数
 						(UBaseType_t)GUI_TASK_PRIO,        //任务优先级
 						(TaskHandle_t *)&GuiTask_Handler); //任务句柄
+		return &GuiTask_Handler;
+}
+
+void gui_control_task(void *pvParameters)
+{
+		create_gui_task();
+		while(1)
+		{
+				ulTaskNotifyTake(pdTRUE,portMAX_DELAY);
+				if(gui.is_gui_start)
+					gui_stop();
+				else
+					gui_start();
+		}
+}
+TaskHandle_t* create_gui_control_task()
+{
+		xTaskCreate((TaskFunction_t)gui_control_task,          //任务函数
+						(const char *)"Gui_Control_Task",          //任务名称
+						(uint16_t)GUI_CONTROL_STK_SIZE,            //任务堆栈大小
+						(void *)NULL,                        //传递给任务函数的参数
+						(UBaseType_t)GUI_CONTROL_TASK_PRIO,        //任务优先级
+						(TaskHandle_t *)&GuiControlTask_Handler); //任务句柄
 		return &GuiTask_Handler;
 }

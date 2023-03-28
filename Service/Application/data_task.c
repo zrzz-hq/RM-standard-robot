@@ -1,10 +1,7 @@
 
 #include "data_task.h"
 
-#include "FreeRTOSConfig.h"
-#include "FreeRTOS.h"
-#include "task.h"
-#include "list.h"
+#include "freertos_usr_lib.h"
 #include "gui_task.h"
 #include "Start_Task.h"
 
@@ -44,6 +41,54 @@ uint8_t Get_Variable_Size(Variable_t* Var)
 			default:
 				return 0;
 		};
+}
+
+Variable_t* Get_Next_Variable(Variable_t* Var)
+{
+		ListItem_t* List_Item = Get_Next_ListItem(Var->List_Item);
+		if(!List_Item)
+			return NULL;
+		return (Variable_t*)(List_Item->xItemValue);
+}
+
+Variable_t* Get_Prev_Variable(Variable_t* Var)
+{
+		ListItem_t* List_Item = Get_Prev_ListItem(Var->List_Item);
+		if(!List_Item)
+			return NULL;
+		return (Variable_t*)(List_Item->xItemValue);
+}
+
+Variable_t* Get_First_Variable()
+{
+		ListItem_t* List_Item = Get_First_ListItem(&Data.Var_List);
+		if(!List_Item)
+			return NULL;
+		return (Variable_t*)(List_Item->xItemValue);
+}
+
+
+static int8_t Iterate_All_Variable_CallBack(ListItem_t* List_Item,void* Usr_Data1,void* Usr_Data2)
+{
+		Variable_t* Var = (Variable_t*)List_Item->xItemValue;
+		int8_t(*Usr_CallBack)(Variable_t*,void*) = Usr_Data1;
+		return Usr_CallBack(Var,Usr_Data2);
+}
+
+Variable_t* Iterate_All_Variable(void* Usr_Data,int8_t(*CallBack)(Variable_t*,void* Usr_Data))
+{
+		ListItem_t* List_Item = Iterate_All_ListItem(&Data.Var_List,(void*)CallBack,Usr_Data,Iterate_All_Variable_CallBack);
+		if(List_Item)
+			return (Variable_t*)List_Item->xItemValue;
+		return NULL;
+}
+
+Variable_t* Iterate_All_Variable_In_Task(void* Usr_Data,int8_t(*CallBack)(Variable_t*,void* Usr_Data))
+{
+		xSemaphoreTake(Data.Variable_Semphr,portMAX_DELAY);
+		Variable_t* Var = Iterate_All_Variable(Usr_Data,CallBack);
+		xSemaphoreGive(Data.Variable_Semphr);
+		return Var;
 }
 
 static Data_Res_t Load_Store_Variable_Val(Variable_t* Var,uint8_t Load)
@@ -167,35 +212,19 @@ static double Get_Variable_Val_By_Ptr(Variable_t* Var)
 		return Val;
 }
 
-//Data_Res_t Del_Variable_From_Json(Variable_t* Var)
-//{
-//		if(!Var->Json_Item)
-//			return DATA_SUCCESS;
-//		
-//		cJSON* Json_Obj = cJSON_DetachItemFromObject(Data.Data_Json,Var->Var_Name);
-//		if(!Json_Obj)
-//			return DATA_CJSON_ERROR;
-//		vPortFree(Json_Obj);
-//		return DATA_SUCCESS;
-//}
+static int8_t Find_Variable_By_Name_CallBack(Variable_t* Var,void* Usr_Data)
+{
+		char* Var_Name = Usr_Data;
+		if(strcmp(Var_Name,Var->Var_Name)==0)
+			return 0;
+		return 1;
+}
 
 static Variable_t* Find_Variable_By_Name(char* Var_Name)
 {
 		if(!Var_Name)
 				return NULL;
-		//获取链表尾部
-		ListItem_t* List_Item = (ListItem_t*)listGET_END_MARKER(&Data.Var_List);
-		Variable_t* Var;
-		//向链表头部遍历
-		do
-		{
-				List_Item = listGET_NEXT(List_Item);
-				//已经达到链表头，还没有找到
-				if(List_Item == Data.Var_List.pxIndex)
-							return NULL;
-				Var = (Variable_t*)(List_Item->xItemValue);
-		}
-		while(strcmp(Var->Var_Name,Var_Name)!=0);
+		Variable_t* Var = Iterate_All_Variable(Var_Name,Find_Variable_By_Name_CallBack);
 		return Var;
 }
 
@@ -448,88 +477,104 @@ Data_Res_t Add_Variable_By_Name_In_Task(char* Var_Name,void* Var_Addr,Variable_T
 		return Res;
 }
 
-//Data_Res_t Del_Variable(char* Var_Name)
-//{
-//		Variable_t* Var = Find_Variable(Var_Name);
-//		if(!Var)
-//				return DATA_SUCCESS;
-//		
-//		uxListRemove(Var->List_Item);
-//		Data_Res_t Res = Del_Variable_From_Json(Var);
-//		if(Res == DATA_SUCCESS)
-//		{
-//				vPortFree(Var->List_Item);
-//				vPortFree(Var);
-//		}
-//		return Res;
-//}
-
-Data_Res_t Init_DataFile(void)
+static int8_t Refresh_DataFile_CallBack(Variable_t* Var,void* Usr_Data)
 {
+		uint16_t* Store_Count = Usr_Data;
+		if(Load_Store_Variable_Val(Var,0)==DATA_SUCCESS)
+			(*Store_Count)++;
+		return 1;
+}
+
+Data_Res_t Refresh_DataFile_In_Task()
+{
+		if(ef_env_set_default()!=EF_NO_ERR)
+				return DATA_IO_ERROR;
+		uint16_t Store_Count = 0;
+		Iterate_All_Variable_In_Task(&Store_Count,Refresh_DataFile_CallBack);
+		return DATA_SUCCESS;
+}
+
+Data_Res_t Trace_Variable_By_Ptr_In_Task(Variable_t* Var,uint16_t Max_Time,void* CallBack)
+{
+		if(Var)
+				return DATA_INVAILD_TYPE;
 		
-		if(ef_env_set_default()==EF_NO_ERR)
-				return DATA_SUCCESS;
-		return DATA_IO_ERROR;
-}
+		//获取信号量，每次仅限一个任务访问变量
+		//xSemaphoreTake(Data.Variable_Semphr,portMAX_DELAY);
+		Data_Res_t Res = DATA_SUCCESS;
 
-Data_Res_t Refresh_DataFile(void)
-{
-		//Data_Res_t Res = Init_DataFile();
-		
-}
-
-//Get_Next_Variable(Var) (Variable_t*)(listGET_NEXT(Var->List_Item)->xItemValue)
-//Get_Prev_Variable(Var) (Variable_t*)((Var->List_Item->pxPrevious)->xItemValue)
-//Get_First_Variable() 	 (Variable_t*)(listGET_HEAD_ENTRY(&Data.Var_List)->xItemValue)
-
-Variable_t* Get_Next_Variable(Variable_t* Var)
-{
-		ListItem_t* List_Item = listGET_NEXT(Var->List_Item);
-		if(List_Item == Data.Var_List.pxIndex)
-			return NULL;
-		return (Variable_t*)(List_Item->xItemValue);
-}
-
-Variable_t* Get_Prev_Variable(Variable_t* Var)
-{
-		ListItem_t* List_Item = Var->List_Item->pxPrevious;
-		if(List_Item == listGET_END_MARKER(&Data.Var_List))
-			return NULL;
-		return (Variable_t*)(List_Item->xItemValue);
-}
-
-Variable_t* Get_First_Variable()
-{
-		ListItem_t* List_Item = listGET_HEAD_ENTRY(&Data.Var_List);
-		if(List_Item == Data.Var_List.pxIndex)
-			return NULL;
-		return (Variable_t*)(List_Item->xItemValue);
-}
-
-void Iterate_All_Variable(Variable_Iterate_Opt_t (*CallBack)(Variable_t* Var))
-{
-		Variable_t* Var_Node = Get_First_Variable();
-		xSemaphoreTake(Data.Variable_Semphr,portMAX_DELAY);
-		while(Var_Node)
+		Variable_Trace_t* Trace = pvPortMalloc(sizeof(Variable_Trace_t));
+		if(!Trace)
 		{
-				switch(CallBack(Var_Node))
-				{
-					case OPT_NEXT:
-						Var_Node = Get_Next_Variable(Var_Node);
-						break;
-					case OPT_PREV:
-						Var_Node = Get_Prev_Variable(Var_Node);
-						break;
-					case OPT_END:
-						Var_Node = NULL;
-						break;
-					default:
-						break;
-				}
-				
+				Res = DATA_MEM_ERROR;
+				goto Error;
 		}
-		xSemaphoreGive(Data.Variable_Semphr);
+
+		uint8_t Size = Get_Variable_Size(Var);
+		Trace->SnapShort = pvPortMalloc(Size);
+		if(!Trace->SnapShort)
+		{
+				Res = DATA_MEM_ERROR;
+				goto Error;
+		}
+
+		Trace->List_Item = pvPortMalloc(sizeof(ListItem_t));
+		if(!Trace->List_Item)
+		{
+				Res = DATA_MEM_ERROR;
+				goto Error;
+		}
+		
+		Trace->List_Item->xItemValue = (uint32_t)Trace;
+		vListInsertEnd(&Data.Trace_List,Trace->List_Item);
+		Trace->Var = Var;
+		Trace->CallBack = CallBack;
+		Trace->Size = Size;
+		Trace->Max_No_Change_Time = Max_Time;
+		//拍摄快照
+		taskENTER_CRITICAL();
+		memcpy(Trace->SnapShort,Var->Var_Addr,Size);
+		taskEXIT_CRITICAL(); 
+		goto End;
+			
+	Error:
+		if(Trace->List_Item)
+			vPortFree(Trace->List_Item);
+		if(Trace->SnapShort)
+			vPortFree(Trace->SnapShort);
+		if(Trace)
+			vPortFree(Trace);
+			
+	End:	
+		//释放信号量
+		//xSemaphoreGive(Data.Variable_Semphr);
+		return Res;
+			
 }
+
+static int8_t Iterate_All_Trace_CallBack(ListItem_t* List_Item,void* Usr_Data1,void* Usr_Data2)
+{
+		Variable_Trace_t* Trace = (Variable_Trace_t*)List_Item->xItemValue;
+	
+		//进入临界区，操作期间不允许数据修改
+		taskENTER_CRITICAL();
+		//比较变量当前值与快照有无差别，如果没有差别，计数器加一，否则，计数器清零
+		if(memcmp(Trace->SnapShort,Trace->Var->Var_Addr,Trace->Size)==0)
+			Trace->No_Change_Time++;
+		else
+			Trace->No_Change_Time=0;
+		//创建新快照
+		memcpy(Trace->SnapShort,Trace->Var->Var_Addr,Trace->Size);
+		//退出临界区
+		taskEXIT_CRITICAL(); 
+		
+		//变量很长时间没有发生改变，那么调用回调函数
+		if(Trace->No_Change_Time>Trace->Max_No_Change_Time)
+			Trace->CallBack(Trace->Var);
+		return 1;
+}
+
+#define Iterate_All_Trace() Iterate_All_ListItem(&Data.Trace_List,NULL,NULL,Iterate_All_Trace_CallBack);
 
 
 Data_Res_t Save_Data_To_SDCard(void)
@@ -656,7 +701,7 @@ void Data_Init()
 		xSemaphoreGive(Data.Modify_Stack.Stack_Semphr);
 		
 		vListInitialise(&Data.Var_List);
-		Usr_Key_Register_Callback(Data_Usr_Key_Handler);
+		vListInitialise(&Data.Trace_List);
 		
 		cJSON_Hooks Hooks;
 		Hooks.free_fn = vPortFree;
@@ -667,15 +712,12 @@ void Data_Init()
 void Data_Task(void *pvParameters)
 {
 		Data_Init();
-		create_gui_task();
+		create_gui_control_task();
 		Create_Start_Task();
 		while(1)
 		{
-			vTaskSuspend(NULL);
-			if(is_gui_start())
-				gui_stop();
-			else
-				gui_start();
+				Iterate_All_Trace();
+				vTaskDelay(100);
 		}
 }
 

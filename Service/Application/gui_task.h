@@ -14,6 +14,10 @@
 #define GUI_STK_SIZE 1024
 extern TaskHandle_t GuiTask_Handler;
 
+#define GUI_CONTROL_TASK_PRIO 21
+#define GUI_CONTROL_STK_SIZE 256
+extern TaskHandle_t GuiControlTask_Handler;
+
 #define MAIN_PAGE_CONT_COUNT  8
 #define LEN_OF_EDIT_TEXT 20
 #define CHART_DATA_POINT_COUNT 120
@@ -30,13 +34,11 @@ typedef struct
 		lv_obj_t* redo_cont;
 		lv_theme_t * gui_theme;
 		uint8_t is_gui_start;
-		QueueHandle_t data_msg_queue;
 }gui_t;
 
-TaskHandle_t* create_gui_task(void);
+TaskHandle_t* create_gui_control_task();
 void gui_start(void);
 void gui_stop(void);
-uint8_t is_gui_start(void);
 void gui_sys_assert_fault_handler(void);
 #endif
 
