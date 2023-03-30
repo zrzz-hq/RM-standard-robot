@@ -20,7 +20,7 @@ void supercap_add_variable(supercap_t* add_variable)
 
 void supercap_init(supercap_t* init)
 {
-		init->dji_judge_msg = Get_Judge_Msg(); 
+		init->dji_judge_info = Get_Judge_Info(); 
 		init->super_c_msg = Get_Cap_Data();
 		
 		init->chassis_power_buffer = DEFAULT_CHASSIS_POWER_BUFFER;
@@ -40,7 +40,7 @@ void supercap_off()
 void supercap_data_update(supercap_t* data_update)
 {
 		//»ñÈ¡robot id
-		data_update->robot_id = data_update->dji_judge_msg->Judge_game_robot_status.robot_id;	
+		data_update->robot_id = data_update->dji_judge_info->Judge_game_robot_status.robot_id;	
 }
 
 void supercap_mode_set(supercap_t* mode_set)
@@ -95,11 +95,11 @@ void supercap_control_set(supercap_t* control_set)
 		{
 				if(control_set->supercap_mode==SUPCAP_MODE_NORMAL)
 				{
-						control_set->cap_send_data.chassis_volt = control_set->dji_judge_msg->Judge_power_heat_data.chassis_volt;
-						control_set->cap_send_data.chassis_current = control_set->dji_judge_msg->Judge_power_heat_data.chassis_current;
-						control_set->cap_send_data.chassis_power_limit = control_set->dji_judge_msg->Judge_game_robot_status.chassis_power_limit;
-						control_set->cap_send_data.chassis_power_buffer = control_set->dji_judge_msg->Judge_power_heat_data.chassis_power_buffer;
-						control_set->cap_send_data.cap_control.bit.gamegoing = (control_set->dji_judge_msg->Judge_game_status.game_progress==4);
+						control_set->cap_send_data.chassis_volt = control_set->dji_judge_info->Judge_power_heat_data.chassis_volt;
+						control_set->cap_send_data.chassis_current = control_set->dji_judge_info->Judge_power_heat_data.chassis_current;
+						control_set->cap_send_data.chassis_power_limit = control_set->dji_judge_info->Judge_game_robot_status.chassis_power_limit;
+						control_set->cap_send_data.chassis_power_buffer = control_set->dji_judge_info->Judge_power_heat_data.chassis_power_buffer;
+						control_set->cap_send_data.cap_control.bit.gamegoing = (control_set->dji_judge_info->Judge_game_status.game_progress==4);
 						control_set->cap_send_data.cap_control.bit.cap_switch = 1;
 				}
 				else if(control_set->supercap_mode==SUPCAP_MODE_DEBUG)

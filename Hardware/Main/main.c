@@ -16,7 +16,7 @@
 #include "flash.h"
 #include "power.h"
 
-#include "usart_judge.h"
+#include "Judge_Data.h"
 #include "data_task.h"
 #include "gui_task.h"
 
@@ -45,7 +45,7 @@ int main(void)
 	
 	remote_control_init();
 	PC_Usart_Init();
-	DJI_Judge_Usart_Init();
+	Judge_Usart_Init();
 	
 	ADC1_Init();
 	Power_24V_Init();

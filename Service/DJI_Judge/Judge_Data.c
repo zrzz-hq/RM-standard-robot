@@ -18,705 +18,357 @@
 #define    FALSE    0
 #define    TRUE     1
 
-DJI_Judge_t DJI_Judge; 
-
-uint8_t Judge_Send_Dataa[200];
-
-uint8_t Judge_Student_Communicate_Dataa[200];
-int Judge_Send_Data_Long,Judge_Send_Data_Long_1,i;
+#define JUDGE_DATA_STK_SIZE 256
+#define JUDGE_DATA_TASK_PRIO 21
 
 
+Judge_Data_t Judge_Data;
 
-/*****************************
-****裁判系统客户端绘制直线****
-输入：
-		Graphic_width		线条宽度
-		Graphic_start_x	起点x坐标
-		Graphic_start_y	起点y坐标
-		Graphic_end_x		终点x坐标
-		Graphic_end_y		终点Y坐标
-******************************/	
-void Judge_Straight_Line_Write(graphic_data_struct_t* Line_data,int Graphic_start_x,int Graphic_start_y,int Graphic_end_x,int Graphic_end_y)
+Judge_Info_t* Get_Judge_Info(void)
 {
-	Line_data->start_x = (uint32_t)Graphic_start_x;
-	Line_data->start_y = (uint32_t)Graphic_start_y;
-	Line_data->end_x = (uint32_t)Graphic_end_x;
-	Line_data->end_y = (uint32_t)Graphic_end_y;	
+		return &Judge_Data.DJI_Judge_Info;
 }
 
-/*****************************
-****裁判系统客户端绘制矩形****
-输入：
-		Graphic_width		线条宽度
-		Graphic_start_x	起点x坐标
-		Graphic_start_y	起点y坐标
-		Graphic_end_x		对角顶点x坐标
-		Graphic_end_y		对角顶点Y坐标
-******************************/	
-void Judge_Rectangle_Write(graphic_data_struct_t* Rectangle_data,int Graphic_start_x,int Graphic_start_y,int Graphic_end_x,int Graphic_end_y)
+//初始化
+void Judge_Usart_Init()
 {
-	Rectangle_data->start_x = (uint32_t)Graphic_start_x;
-	Rectangle_data->start_y = (uint32_t)Graphic_start_y;
-	Rectangle_data->end_x = (uint32_t)Graphic_end_x;
-	Rectangle_data->end_y = (uint32_t)Graphic_end_y;	
+	USART_InitTypeDef USART_InitStructure;
+	GPIO_InitTypeDef GPIO_InitStructure;
+	NVIC_InitTypeDef NVIC_InitStructure;
+	DMA_InitTypeDef DMA_InitStructure;
+	
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOG | RCC_AHB1Periph_DMA2,ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART6, ENABLE);
+
+	GPIO_PinAFConfig(GPIOG, GPIO_PinSource9, GPIO_AF_USART6);
+	GPIO_PinAFConfig(GPIOG, GPIO_PinSource14, GPIO_AF_USART6);
+
+	GPIO_StructInit(&GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9 | GPIO_Pin_14;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+  GPIO_Init(GPIOG, &GPIO_InitStructure);
+	
+	USART_DeInit(USART6);
+  USART_InitStructure.USART_BaudRate = 115200;
+  USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+  USART_InitStructure.USART_StopBits = USART_StopBits_1;
+	USART_InitStructure.USART_Parity = USART_Parity_No;
+  USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+
+  USART_Init(USART6, &USART_InitStructure);
+
+  USART_ClearFlag(USART6, USART_FLAG_IDLE);
+	USART_ITConfig(USART6, USART_IT_IDLE, ENABLE);  
+
+	USART_DMACmd(USART6, USART_DMAReq_Rx, ENABLE);
+	USART_DMACmd(USART6, USART_DMAReq_Tx, ENABLE); 
+	USART_Cmd(USART6,ENABLE);
+	
+	NVIC_InitStructure.NVIC_IRQChannel = USART6_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 5;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE; 
+	NVIC_Init(&NVIC_InitStructure);
+	
+	DMA_Cmd(DMA2_Stream1, DISABLE);
+	DMA_DeInit(DMA2_Stream1);
+	DMA_InitStructure.DMA_Channel	= DMA_Channel_5;
+	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&(USART6->DR);
+	DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)Judge_Data.Judge_Usart_Rx_Buff[0];
+	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralToMemory;
+	DMA_InitStructure.DMA_BufferSize = DJI_JUDGE_BUF_MAX_LEN;
+	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
+	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
+	DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
+	DMA_InitStructure.DMA_Mode = DMA_Mode_Circular;
+	DMA_InitStructure.DMA_Priority = DMA_Priority_VeryHigh;
+	DMA_InitStructure.DMA_FIFOMode = DMA_FIFOMode_Disable;
+	DMA_Init(DMA2_Stream1,&DMA_InitStructure);
+	
+	DMA_DoubleBufferModeConfig(DMA2_Stream1, (uint32_t)Judge_Data.Judge_Usart_Rx_Buff[1], DMA_Memory_0);
+  DMA_DoubleBufferModeCmd(DMA2_Stream1, ENABLE);
+	
+	//DMA_ITConfig(DMA2_Stream1,DMA_IT_TC,ENABLE);
+	DMA_Cmd(DMA2_Stream1,DISABLE);
+	DMA_Cmd(DMA2_Stream1,ENABLE);
+	
+	DMA_Cmd(DMA2_Stream7, DISABLE);
+	DMA_DeInit(DMA2_Stream7);
+	DMA_InitStructure.DMA_Channel = DMA_Channel_5;
+	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&USART6->DR;
+	DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)Judge_Data.Judge_Usart_Tx_Buff;
+	DMA_InitStructure.DMA_DIR = DMA_DIR_MemoryToPeripheral;
+	DMA_InitStructure.DMA_BufferSize = DJI_JUDGE_BUF_MAX_LEN;
+	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
+	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
+	DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
+	DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
+	DMA_InitStructure.DMA_Priority = DMA_Priority_High;
+	DMA_InitStructure.DMA_FIFOMode = DMA_FIFOMode_Disable;         
+	DMA_Init(DMA2_Stream7, &DMA_InitStructure);
+
+	DMA_ITConfig(DMA2_Stream7, DMA_IT_TC, ENABLE);
+	DMA_Cmd(DMA2_Stream7, DISABLE);
+	
+	NVIC_InitStructure.NVIC_IRQChannel = DMA2_Stream7_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 5;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
 }
 
-/*****************************
-****裁判系统客户端绘制正圆****
-输入：
-		Graphic_width		线条宽度
-		Graphic_start_x	圆心x坐标
-		Graphic_start_y	圆心y坐标
-		Graphic_radius	半径
-******************************/	
-void Judge_All_Circle_Write(graphic_data_struct_t* All_Circle_data,int Graphic_start_x,int Graphic_start_y,int Graphic_radius)
-{
-	All_Circle_data->start_x = (uint32_t)Graphic_start_x;
-	All_Circle_data->start_y = (uint32_t)Graphic_start_y;
-	All_Circle_data->radius = (uint32_t)Graphic_radius;
-}
-
-/******************************
-****裁判系统客户端绘制椭圆****
-输入：
-		Graphic_width		线条宽度
-		Graphic_start_x	圆心x坐标
-		Graphic_start_y	圆心y坐标
-		Graphic_end_x		x半轴长度
-		Graphic_end_y		y半轴长度
-******************************/	
-void Judge_Oval_Circle_Write(graphic_data_struct_t* Oval_Circl_data,int Graphic_start_x,int Graphic_start_y,int Graphic_end_x,int Graphic_end_y)
-{
-	Oval_Circl_data->start_x = (uint32_t)Graphic_start_x;
-	Oval_Circl_data->start_y = (uint32_t)Graphic_start_y;
-	Oval_Circl_data->end_x = (uint32_t)Graphic_end_x;
-	Oval_Circl_data->end_y = (uint32_t)Graphic_end_y;	
-}
-
-/******************************
-****裁判系统客户端绘制圆弧****
-输入：
-		Graphic_start_angle	起始角度
-		Graphic_end_angle		终止角度
-		Graphic_width		线条宽度
-		Graphic_start_x	圆心x坐标
-		Graphic_start_y	圆心y坐标
-		Graphic_end_x		x半轴长度
-		Graphic_end_y		y半轴长度
-******************************/	
-void Judge_Arc_Circle_Write(graphic_data_struct_t* Arc_Circle_data,int Graphic_start_angle,int Graphic_end_angle,int Graphic_start_x,int Graphic_start_y,int Graphic_end_x,int Graphic_end_y)
-{
-	Arc_Circle_data->start_angle = (uint32_t)Graphic_start_angle;
-	Arc_Circle_data->end_angle = (uint32_t)Graphic_end_angle;
-	Arc_Circle_data->start_x = (uint32_t)Graphic_start_x;
-	Arc_Circle_data->start_y = (uint32_t)Graphic_start_y;
-	Arc_Circle_data->end_x = (uint32_t)Graphic_end_x;
-	Arc_Circle_data->end_y = (uint32_t)Graphic_end_y;	
-}
-
-/******************************
-****裁判系统客户端绘制浮点数****
-输入：
-		Word_width	字体大小
-		Float_Small_Num	小数位有效个数
-		Graphic_width		线条宽度
-		Graphic_start_x	起点x坐标
-		Graphic_start_y	起点y坐标
-		Floating_Num		32位浮点数，float
-******************************/	
-void Judge_Floating_Write(Word_data_struct_t* Float_data_Set,int Word_width,int Float_Small_Num,int Graphic_start_x,int Graphic_start_y,float Floatint_Data)
-{
-	
-	Float_data_Set->start_angle = (uint32_t)Word_width;
-	Float_data_Set->end_angle = (uint32_t)Float_Small_Num;	
-	Float_data_Set->start_x = (uint32_t)Graphic_start_x;
-	Float_data_Set->start_y = (uint32_t)Graphic_start_y;
-	memcpy(Float_data_Set->Word_Data,(uint8_t *)&Floatint_Data,4); 	
-	
-//	Float_data_Set->Word_Data[0] = (uint8_t)((uint32_t)Floatint_Data);
-//	Float_data_Set->Word_Data[1] = (uint8_t)(((uint32_t)Floatint_Data << 8));
-//	Float_data_Set->Word_Data[2] = (uint8_t)(((uint32_t)Floatint_Data << 16));
-//	Float_data_Set->Word_Data[3] = (uint8_t)(((uint32_t)Floatint_Data << 24));
-	
-//	for(int i = 0;i < 4;i++)
-//	memcpy(Float_data_Set->Word_Data + i,(uint8_t *)&Floatint_Data + i,2);
-//	memcpy(Float_data_Set->Word_Data + 0,(uint8_t *)&Floatint_Data + 3,2);
-//	memcpy(Float_data_Set->Word_Data + 1,(uint8_t *)&Floatint_Data + 2,2);
-//	memcpy(Float_data_Set->Word_Data + 2,(uint8_t *)&Floatint_Data + 1,2);
-//	memcpy(Float_data_Set->Word_Data + 3,(uint8_t *)&Floatint_Data + 0,2); 	
-//	memcpy(Float_data_Set->Word_Data + 1,(uint8_t *)&Floatint_Data,sizeof(uint8_t)); 	
-//	memcpy(Float_data_Set->Word_Data + 2,(uint8_t *)&(Floatint_Data >> 8),sizeof(uint8_t)); 	
-//	memcpy(Float_data_Set->Word_Data + 3,(uint8_t *)&Floatint_Data,sizeof(uint8_t)); 	
-}
-
-/******************************
-****裁判系统客户端绘制整型数****
-输入：
-		Word_width	字体大小
-		Float_Small_Num	小数位有效个数
-		Graphic_width		线条宽度
-		Graphic_start_x	起点x坐标
-		Graphic_start_y	起点y坐标
-		Floating_Num		32位整型数，int32_t
-******************************/	
-void Judge_Integer_Write(Word_data_struct_t* Integer_data_Set,int Word_width,int Graphic_start_x,int Graphic_start_y,int Int_Num)
-{
-	Integer_data_Set->start_angle = (uint32_t)Word_width;
-	Integer_data_Set->start_x = (uint32_t)Graphic_start_x;
-	Integer_data_Set->start_y = (uint32_t)Graphic_start_y;
-	memcpy(Integer_data_Set->Word_Data,(uint8_t *)&Int_Num,4); 
-}
-
-/******************************
-****裁判系统客户端绘制字符****
-输入：
-		Word_width	字体大小
-		Word_Lenth	字符长度
-		Graphic_width		线条宽度
-		Graphic_start_x	起点x坐标
-		Graphic_start_y	起点y坐标
-******************************/	
-void Judge_Character_Write(graphic_data_struct_t* Character_data,int Word_width,int Word_Lenth,int Graphic_start_x,int Graphic_start_y)
-{
-	Character_data->start_angle = (uint32_t)Word_width;
-	Character_data->end_angle = (uint32_t)Word_Lenth;		
-	Character_data->start_x = (uint32_t)Graphic_start_x;
-	Character_data->start_y = (uint32_t)Graphic_start_y;
-}
-
-
-//void Judge_Graphic_Data_Calculate(uint32_t dataaa,graphic_data_struct_t* graphic_data_size_test)
-//{
-//	dataaa = (graphic_data_size_test->graphic_tpye <<29) || 
-//}
-uint32_t dataaa[3];
-/***************************************
-****裁判系统客户端自定义图形数据设置****
-输入：(所有参数)
-		Graphic_Name	图形名
-		Judge_Graphic_Type	图形操作
-		Judge_Graphic_Control	图形类型
-		Grap_Board_Num	图层数
-		Grap_Colour	颜色
-		Grap_start_angle	起始角度
-		Grap_end_angle		终止角度
-		Grap_width		线条宽度
-		Grap_start_x	起点x坐标
-		Grap_start_y	起点y坐标
-		Grap_size			字体大小或者半径
-		Grap_end_x		终点x坐标
-		Grap_end_y		终点y坐标
-*****************************************/	
-void Judge_Graphic_Data_Set(graphic_data_struct_t* graphic_data,uint8_t* Graphic_Name,Judge_Graphic_Type_t Judge_Graphic_Type,Judge_Graphic_Control_t Judge_Graphic_Control,\
-int Grap_Board_Num,int Grap_Colour,int Grap_start_angle,int Grap_end_angle,int Grap_width,int Grap_start_x,int Grap_start_y,int Grap_size,int Grap_end_x,int Grap_end_y)
-{
-
-	graphic_data->graphic_name[0] = *Graphic_Name;
-	graphic_data->graphic_name[1] = *Graphic_Name+1;
-	graphic_data->graphic_name[2] = *Graphic_Name+2;
-	
-//	dataaa = (Judge_Graphic_Control << 29)|(Judge_Graphic_Type << 29)|(Grap_Board_Num << 28)|(Grap_Colour << 28)|(Grap_start_angle << 21)|(Grap_end_angle << 21);
-	
-	graphic_data->operate_tpye = Judge_Graphic_Control;
-	graphic_data->graphic_tpye = Judge_Graphic_Type;
-	graphic_data->layer = Grap_Board_Num;
-	graphic_data->color = Grap_Colour;
-	graphic_data->width = Grap_width;
-//	memcpy(dataaa,graphic_data+6,12);
-	switch(Judge_Graphic_Type)
-	{
-		case Straight_Line:
-		{
-			Judge_Straight_Line_Write(graphic_data,Grap_start_x,Grap_start_y,Grap_end_x,Grap_end_y);
-			break;
-		}
-		case Rectangle:
-		{
-			Judge_Rectangle_Write(graphic_data,Grap_start_x,Grap_start_y,Grap_end_x,Grap_end_y);
-			break;
-		}
-		case All_Circle:
-		{
-			Judge_All_Circle_Write(graphic_data,Grap_start_x,Grap_start_y,Grap_size);
-			break;
-		}
-		case Oval_Circle:
-		{
-			Judge_Oval_Circle_Write(graphic_data,Grap_start_x,Grap_start_y,Grap_end_x,Grap_end_y);
-			break;
-		}
-		case Arc_Circle:
-		{
-			Judge_Arc_Circle_Write(graphic_data,Grap_start_angle,Grap_end_angle,Grap_start_x,Grap_start_y,Grap_end_x,Grap_end_y);
-			break;
-		}
-		case Floating:
-//			Judge_Floating_Write(graphic_data,Grap_start_angle,Grap_end_angle,Grap_start_x,Grap_start_y);
-		break;
-		case Integer:
-	//		Judge_Integer_Write(graphic_data,Grap_start_angle,Grap_start_x,Grap_start_y);
-		break;
-		case Character:
-//			Judge_Character_Write(graphic_data,Grap_start_angle,Grap_end_angle,Grap_start_x,Grap_start_y);
-		break;
-		
-	
-	}
-
-}
-
-/***************************************
-****裁判系统客户端自定义字数据设置****
-输入：(所有参数)
-		Graphic_Name	图形名
-		Judge_Graphic_Type	图形操作
-		Judge_Graphic_Control	图形类型
-		Grap_Board_Num	图层数
-		Grap_Colour	颜色
-		Grap_Word_Size	字体大小
-		Grap_Word_Lenth		小数位有效个数/字符长度
-		Grap_width		线条宽度
-		Grap_start_x	起点x坐标
-		Grap_start_y	起点y坐标
-		Flost_32_Data		浮点型32位数据		
-		Int_32_Data			整型32位数据
-		Send_Character	字符串地址
-*****************************************/	
-void Judge_Word_Data_Set(Word_data_struct_t* Word_data_Set,uint8_t* Graphic_Name,Judge_Graphic_Type_t Judge_Graphic_Type,Judge_Graphic_Control_t Judge_Graphic_Control,\
-int Grap_Board_Num,int Grap_Colour,int Grap_Word_Size,int Grap_Word_Lenth,int Grap_width,int Grap_start_x,int Grap_start_y,float Flost_32_Data,int32_t Int_32_Data)
-{
-	
-	Word_data_Set->graphic_name[0] = *Graphic_Name;
-	Word_data_Set->graphic_name[1] = *Graphic_Name+1;
-	Word_data_Set->graphic_name[2] = *Graphic_Name+2;
-	
-	Word_data_Set->operate_tpye = Judge_Graphic_Control;
-	Word_data_Set->graphic_tpye = Judge_Graphic_Type;
-	Word_data_Set->layer = Grap_Board_Num;
-	Word_data_Set->color = Grap_Colour;
-	Word_data_Set->width = Grap_width;
-	switch(Judge_Graphic_Type)
-	{
-		case Floating:
-		{
-			Judge_Floating_Write(Word_data_Set,Grap_Word_Size,Grap_Word_Lenth,Grap_start_x,Grap_start_y,Flost_32_Data);
-			break;
-		}
-		case Integer:
-		{
-			Judge_Integer_Write(Word_data_Set,Grap_Word_Size,Grap_start_x,Grap_start_y,Int_32_Data);
-			break;
-		}
-		case Character:
-		{
-//		Judge_Character_Write(graphic_data,Grap_Word_Size,Grap_Word_Lenth,Grap_start_x,Grap_start_y);
-			break;
-		}
-		case Straight_Line:break;
-		case Rectangle:break;
-		case All_Circle:break;
-		case Oval_Circle:break;
-		case Arc_Circle:break;	
-	
-	}
-	
-}
-extern uint8_t	Judge_Test_Graphic_Data[];
-/***************************************
-****裁判系统客户端自定义字符数据设置****
-输入：(所有参数)
-		Graphic_Name	图形名
-		Judge_Graphic_Type	图形操作
-		Judge_Graphic_Control	图形类型
-		Grap_Board_Num	图层数
-		Grap_Colour	颜色
-		Grap_Word_Size	字体大小
-		Grap_Word_Lenth		字符长度
-		Grap_width		线条宽度
-		Grap_start_x	起点x坐标
-		Grap_start_y	起点y坐标
-		Send_Character	字符串地址
-*****************************************/	
-void Judge_Character_Data_Set(Judge_client_custom_character_t* Judge_client_custom_character_Set,uint8_t* Graphic_Name,Judge_Graphic_Type_t Judge_Graphic_Type,Judge_Graphic_Control_t Judge_Graphic_Control,\
-int Grap_Board_Num,int Grap_Colour,int Grap_Word_Size,int Grap_Word_Lenth,int Grap_width,int Grap_start_x,int Grap_start_y,uint8_t* Send_Character)
-{
-
-	Judge_client_custom_character_Set->grapic_data_struct.graphic_name[0] = *Graphic_Name;
-	Judge_client_custom_character_Set->grapic_data_struct.graphic_name[1] = *Graphic_Name+1;
-	Judge_client_custom_character_Set->grapic_data_struct.graphic_name[2] = *Graphic_Name+2;
-		
-	Judge_client_custom_character_Set->grapic_data_struct.operate_tpye = Judge_Graphic_Control;
-	Judge_client_custom_character_Set->grapic_data_struct.graphic_tpye = Judge_Graphic_Type;
-	Judge_client_custom_character_Set->grapic_data_struct.layer = Grap_Board_Num;
-	Judge_client_custom_character_Set->grapic_data_struct.color = Grap_Colour;
-	Judge_client_custom_character_Set->grapic_data_struct.width = Grap_width;
-	switch(Judge_Graphic_Type)
-	{
-		case Floating:break;
-		case Integer:break;
-		case Character:
-			Judge_Character_Write(&Judge_client_custom_character_Set->grapic_data_struct,Grap_Word_Size,Grap_Word_Lenth,Grap_start_x,Grap_start_y);
-			memcpy(Judge_client_custom_character_Set->data,Send_Character,30);			
-			break;
-		case Straight_Line:break;
-		case Rectangle:break;
-		case All_Circle:break;
-		case Oval_Circle:break;
-		case Arc_Circle:break;		
-	}
-}
-
-/***************************************
-****裁判系统客户端图形删除设置****
-输入：(所有参数)
-		graphic_Set	图形操作
-		graphic_Num	图层数
-*****************************************/
-void Judge_Delete_Data_Send(union Judge_Graphic_Delet_t *	Judge_client_custom_graphic_delete_Set,uint8_t graphic_Set,uint8_t graphic_Num)
-{
-	Judge_client_custom_graphic_delete_Set->Judge_client_custom_graphic_delete.layer = graphic_Num;
-	Judge_client_custom_graphic_delete_Set->Judge_client_custom_graphic_delete.operate_tpye = graphic_Set;
-}
-
-void Judge_Communication_To_Client_Custom(DJI_Judge_t*DJI_Judge_Clint_Communication)
-{
-	
-}
-
-
-/***************************************
-****裁判系统客户端自定义字符数据发送****
-输入：(所有参数)
-Stu_data_cmd_id	发送ID
-		Stu_Get_id	接收者ID
-		p_data	数据
-		Data_long	数据长度
-*****************************************/	
-void Judge_Data_Send(DJI_Judge_t* DJI_Judge_Send_Data,uint16_t Stu_data_cmd_id,uint16_t Stu_Get_id, uint8_t* p_data , int Data_long)
-{
-	static uint8_t Judge_Send_Seq = 0;
-
-//	Judge_Send_Data_Long_1 = sizeof(&p_data);
-	
-	DJI_Judge_Send_Data->Judge_Send_Data.frame_header.sof = DJI_Judge_Header_SOF;
-	DJI_Judge_Send_Data->Judge_Send_Data.frame_header.data_length = sizeof(DJI_Judge_Send_Data->Judge_Send_Data.Judge_student_interactive_header_data) + Data_long;
-	DJI_Judge_Send_Data->Judge_Send_Data.frame_header.seq = Judge_Send_Seq;
-	
-
-	
-	memcpy(Judge_Send_Dataa, &DJI_Judge_Send_Data->Judge_Send_Data.frame_header, sizeof(DJI_Judge_Send_Data->Judge_Send_Data.frame_header));
-	append_crc8_check_sum(Judge_Send_Dataa,sizeof(DJI_Judge_Send_Data->Judge_Send_Data.frame_header));
-	
-	DJI_Judge_Send_Data->Judge_Send_Data.cmdid = DJI_Judge_Student_CmdID;
-	DJI_Judge_Send_Data->Judge_Send_Data.Judge_student_interactive_header_data.data_cmd_id = Stu_data_cmd_id;
-	DJI_Judge_Send_Data->Judge_Send_Data.Judge_student_interactive_header_data.sender_ID = \
-	(uint16_t)DJI_Judge_Send_Data->DJI_Judge_Msg.Judge_game_robot_status.robot_id;
-	DJI_Judge_Send_Data->Judge_Send_Data.Judge_student_interactive_header_data.receiver_ID = Stu_Get_id;
-	
-	
-	
-	memcpy(Judge_Send_Dataa+sizeof(DJI_Judge_Send_Data->Judge_Send_Data.frame_header),(uint8_t *)&DJI_Judge_Send_Data->Judge_Send_Data.cmdid,sizeof(DJI_Judge_Send_Data->Judge_Send_Data.cmdid));
-	
-	memcpy(Judge_Send_Dataa+sizeof(DJI_Judge_Send_Data->Judge_Send_Data.frame_header)+sizeof(DJI_Judge_Send_Data->Judge_Send_Data.cmdid),(uint8_t*)&DJI_Judge_Send_Data->Judge_Send_Data.Judge_student_interactive_header_data,sizeof(DJI_Judge_Send_Data->Judge_Send_Data.Judge_student_interactive_header_data)); 	
-
-	memcpy(Judge_Send_Dataa+sizeof(DJI_Judge_Send_Data->Judge_Send_Data.frame_header)+sizeof(DJI_Judge_Send_Data->Judge_Send_Data.cmdid) + sizeof(DJI_Judge_Send_Data->Judge_Send_Data.Judge_student_interactive_header_data),p_data,Data_long); 		
-
-
-//	memcpy(Judge_Send_Dataa + sizeof(DJI_Judge_Send_Data->Judge_Send_Data.frame_header) + sizeof(DJI_Judge_Send_Data->Judge_Send_Data.Judge_student_interactive_header_data), p_data, sizeof(&p_data));
-	append_crc16_check_sum(Judge_Send_Dataa,sizeof(DJI_Judge_Send_Data->Judge_Send_Data) + Data_long);
-	Judge_Send_Data_Long = sizeof(DJI_Judge_Send_Data->Judge_Send_Data) + Data_long;
-
-		for(i = 0;i < Judge_Send_Data_Long;i++)
-		{
-			USART6_SendData(Judge_Send_Dataa[i]);
-//			while(USART_GetFlagStatus(USART6,USART_FLAG_TC)==RESET);
-//			USART_SendData(USART6,(uint8_t)Judge_Send_Dataa[i]);			
-		}	
-	
-	Judge_Send_Seq++;
-	if(Judge_Send_Seq == 0xFF)
-	{
-		Judge_Send_Seq = 0;
-	}
-}
-
-uint16_t Get_Robot_Client_Id(uint16_t Robot_Id)
-{
-	switch(Robot_Id)
-	{
-		case 1:
-			return 0x0101;
-		break;
-		case 2:
-			return 0x0102;
-		break;
-		case 3:
-			return 0x0103;
-		break;
-		case 4:
-			return 0x0104;
-		break;
-		case 5:
-			return 0x0105;
-		break;
-		case 6:
-			return 0x0106;
-		break;
-		case 101:
-			return 0x0165;
-		break;
-		case 102:
-			return 0x0167;
-		break;
-		case 103:
-			return 0x0167;
-		break;
-		case 104:
-			return 0x0168;
-		break;
-		case 105:
-			return 0x0169;
-		break;
-		case 106:
-			return 0x016A;
-		break;	
-	}
-	return 0;
-}
-
-/***************************************
-****裁判系统自助发送到客户端****
-输入：(所有参数)
-		Stu_data_cmd_id	发送ID
-		Stu_Get_id	接收者ID
-		p_data	数据
-		Data_long	数据长度
-*****************************************/
-void Judge_Data_Send_To_Client(DJI_Judge_t* DJI_Judge_Send_Data,uint16_t Stu_data_cmd_id, uint8_t* p_data , int Data_long)
-{
-	static uint8_t Judge_Send_Seq = 0;
-
-//	Judge_Send_Data_Long_1 = sizeof(&p_data);
-	
-	DJI_Judge_Send_Data->Judge_Send_Data.frame_header.sof = DJI_Judge_Header_SOF;
-	DJI_Judge_Send_Data->Judge_Send_Data.frame_header.data_length = sizeof(DJI_Judge_Send_Data->Judge_Send_Data.Judge_student_interactive_header_data) + Data_long;
-	DJI_Judge_Send_Data->Judge_Send_Data.frame_header.seq = Judge_Send_Seq;
-	
-
-	
-	memcpy(Judge_Send_Dataa, &DJI_Judge_Send_Data->Judge_Send_Data.frame_header, sizeof(DJI_Judge_Send_Data->Judge_Send_Data.frame_header));
-	append_crc8_check_sum(Judge_Send_Dataa,sizeof(DJI_Judge_Send_Data->Judge_Send_Data.frame_header));
-	
-	DJI_Judge_Send_Data->Judge_Send_Data.cmdid = DJI_Judge_Student_CmdID;
-	DJI_Judge_Send_Data->Judge_Send_Data.Judge_student_interactive_header_data.data_cmd_id = Stu_data_cmd_id;
-	DJI_Judge_Send_Data->Judge_Send_Data.Judge_student_interactive_header_data.sender_ID = \
-	(uint16_t)DJI_Judge_Send_Data->DJI_Judge_Msg.Judge_game_robot_status.robot_id;
-	DJI_Judge_Send_Data->Judge_Send_Data.Judge_student_interactive_header_data.receiver_ID = Get_Robot_Client_Id(DJI_Judge_Send_Data->Judge_Send_Data.Judge_student_interactive_header_data.sender_ID);
-	
-	
-	
-	memcpy(Judge_Send_Dataa+sizeof(DJI_Judge_Send_Data->Judge_Send_Data.frame_header),(uint8_t *)&DJI_Judge_Send_Data->Judge_Send_Data.cmdid,sizeof(DJI_Judge_Send_Data->Judge_Send_Data.cmdid));
-	
-	memcpy(Judge_Send_Dataa+sizeof(DJI_Judge_Send_Data->Judge_Send_Data.frame_header)+sizeof(DJI_Judge_Send_Data->Judge_Send_Data.cmdid),(uint8_t*)&DJI_Judge_Send_Data->Judge_Send_Data.Judge_student_interactive_header_data,sizeof(DJI_Judge_Send_Data->Judge_Send_Data.Judge_student_interactive_header_data)); 	
-
-	memcpy(Judge_Send_Dataa+sizeof(DJI_Judge_Send_Data->Judge_Send_Data.frame_header)+sizeof(DJI_Judge_Send_Data->Judge_Send_Data.cmdid) + sizeof(DJI_Judge_Send_Data->Judge_Send_Data.Judge_student_interactive_header_data),p_data,Data_long); 		
-
-
-//	memcpy(Judge_Send_Dataa + sizeof(DJI_Judge_Send_Data->Judge_Send_Data.frame_header) + sizeof(DJI_Judge_Send_Data->Judge_Send_Data.Judge_student_interactive_header_data), p_data, sizeof(&p_data));
-	append_crc16_check_sum(Judge_Send_Dataa,sizeof(DJI_Judge_Send_Data->Judge_Send_Data) + Data_long);
-	Judge_Send_Data_Long = sizeof(DJI_Judge_Send_Data->Judge_Send_Data) + Data_long;
-
-		for(i = 0;i < Judge_Send_Data_Long;i++)
-		{
-			USART6_SendData(Judge_Send_Dataa[i]);
-//			while(USART_GetFlagStatus(USART6,USART_FLAG_TC)==RESET);
-//			USART_SendData(USART6,(uint8_t)Judge_Send_Dataa[i]);			
-		}	
-	
-	Judge_Send_Seq++;
-	if(Judge_Send_Seq == 0xFF)
-	{
-		Judge_Send_Seq = 0;
-	}
-}
-
-
-//裁判系统发送图形数据刷新
-void Judge_Graphic_operate_tpye_Set(graphic_data_struct_t* graphic_data_struct_Update,uint8_t* Graphic_Name,Judge_Graphic_Control_t Judge_Graphic_Update)
-{
-	
-	graphic_data_struct_Update->graphic_name[0] = *Graphic_Name;
-	graphic_data_struct_Update->graphic_name[1] = *Graphic_Name+1;
-	graphic_data_struct_Update->graphic_name[2] = *Graphic_Name+2;
-	graphic_data_struct_Update->operate_tpye = Judge_Graphic_Update;
-}
-//裁判系统发送数字数据刷新
-void Judge_Word_operate_tpye_Set(Word_data_struct_t* Word_data_struct_Update,uint8_t* Graphic_Name,Judge_Graphic_Control_t Judge_Graphic_Update)
-{
-	Word_data_struct_Update->graphic_name[0] = *Graphic_Name;
-	Word_data_struct_Update->graphic_name[1] = *Graphic_Name+1;
-	Word_data_struct_Update->graphic_name[2] = *Graphic_Name+2;	
-	Word_data_struct_Update->operate_tpye = Judge_Graphic_Update;
-}
-
-//裁判系统发送字符串数据刷新
-void Judge_Character_operate_tpye_Set(Judge_client_custom_character_t* Judge_client_custom_character_Update,uint8_t* Graphic_Name,Judge_Graphic_Control_t Judge_Graphic_Update)
-{
-	Judge_client_custom_character_Update->grapic_data_struct.graphic_name[0] = *Graphic_Name;
-	Judge_client_custom_character_Update->grapic_data_struct.graphic_name[1] = *Graphic_Name+1;
-	Judge_client_custom_character_Update->grapic_data_struct.graphic_name[2] = *Graphic_Name+2;
-	Judge_client_custom_character_Update->grapic_data_struct.operate_tpye = Judge_Graphic_Update;
-}
-
-
-int Judge_Data_Update(uint8_t* Judge_Data_Get,DJI_Judge_t* DJI_Judge_Update)
+static void Judge_Info_Update(uint8_t* Data,uint16_t Data_Len,uint16_t CmdID)
 {
 		int Judge_Data_Len;
-		//校验头帧SOF
-		if(Judge_Data_Get[0] == DJI_Judge_Header_SOF)
+		void* Target_Structure = NULL;
+		switch(CmdID)
 		{
-			//将数组数据存入结构体
-			DJI_Judge_Update->Judge_Data.frame_header.sof = DJI_Judge_Header_SOF;
-			DJI_Judge_Update->Judge_Data.frame_header.data_length = (uint16_t)(Judge_Data_Get[1] | (Judge_Data_Get[2] << 8));
-			DJI_Judge_Update->Judge_Data.frame_header.seq = Judge_Data_Get[3];
-			//头帧CRC8校验判断
-			if(verify_crc8_check_sum( Judge_Data_Get, Judge_Header_LEN ) == TRUE)
+			case Judge_CmdID_Game_State:
 			{
-				Judge_Data_Len = DJI_Judge_Update->Judge_Data.frame_header.data_length + Judge_Header_LEN + Judge_Cmd_id_LEN + Judge_CRC16_LEN;
-				DJI_Judge_Update->Judge_Data.cmdid = (uint16_t)(Judge_Data_Get[5] | (Judge_Data_Get[6] << 8));
-				//尾帧CRC16校验判断
-				if(verify_crc16_check_sum( Judge_Data_Get, Judge_Data_Len ) == TRUE)
-				{			
-					switch(DJI_Judge_Update->Judge_Data.cmdid)
-					{
-						case Judge_CmdID_Game_State:
-						{
-							memcpy(&DJI_Judge_Update->DJI_Judge_Msg.Judge_game_status, (Judge_Data_Get + Judge_Header_LEN + Judge_Cmd_id_LEN), Judge_Len_Game_State);
-							break;
-						}
-						case Judge_CmdID_Game_Result:
-						{
-							memcpy(&DJI_Judge_Update->DJI_Judge_Msg.Judge_game_result, (Judge_Data_Get + Judge_Header_LEN + Judge_Cmd_id_LEN), Judge_Len_Game_Result);
-							break;
-						}
-						case Judge_CmdID_Robot_Blood:
-						{
-							memcpy(&DJI_Judge_Update->DJI_Judge_Msg.Judge_game_robot_HP, (Judge_Data_Get + Judge_Header_LEN + Judge_Cmd_id_LEN), Judge_Len_Robot_Blood);
-							break;
-						}
-						case Judge_CmdID_Missile_State:
-						{
-							memcpy(&DJI_Judge_Update->DJI_Judge_Msg.Judge_dart_client_cmd, (Judge_Data_Get + Judge_Header_LEN + Judge_Cmd_id_LEN), Judge_Len_Missile_State);
-							break;
-						}
-						case Judge_CmdID_Area_Event:
-						{
-							memcpy(&DJI_Judge_Update->DJI_Judge_Msg.Judge_event_data, (Judge_Data_Get + Judge_Header_LEN + Judge_Cmd_id_LEN), Judge_Len_Area_Event);
-							break;
-						}
-						case Judge_CmdID_Area_Supply_Station_Action_Data:
-						{
-							memcpy(&DJI_Judge_Update->DJI_Judge_Msg.Judge_supply_projectile_action, (Judge_Data_Get + Judge_Header_LEN + Judge_Cmd_id_LEN), Judge_Len_Area_Supply_Station_Action_Data);
-							break;
-						}
-						case Judge_CmdID_Waening_Data:
-						{
-							memcpy(&DJI_Judge_Update->DJI_Judge_Msg.Judge_referee_warning, (Judge_Data_Get + Judge_Header_LEN + Judge_Cmd_id_LEN), Judge_Len_Waening_Data);
-							break;
-						}
-						case Judge_CmdID_Missile_Time_Limit_Count:
-						{
-							memcpy(&DJI_Judge_Update->DJI_Judge_Msg.Judge_dart_remaining_time, (Judge_Data_Get + Judge_Header_LEN + Judge_Cmd_id_LEN), Judge_Len_Missile_Time_Limit_Count);
-							break;
-						}
-						case Judge_CmdID_Robot_State:
-						{
-							memcpy(&DJI_Judge_Update->DJI_Judge_Msg.Judge_game_robot_status, (Judge_Data_Get + Judge_Header_LEN + Judge_Cmd_id_LEN), Judge_Len_Robot_State);
-							break;
-						}
-						case Judge_CmdID_Real_Time_Power_Heat:
-						{
-							memcpy(&DJI_Judge_Update->DJI_Judge_Msg.Judge_power_heat_data, (Judge_Data_Get + Judge_Header_LEN + Judge_Cmd_id_LEN), Judge_Len_Real_Time_Power_Heat);
-							break;
-						}
-						case Judge_CmdID_Robot_Position_Data:
-						{
-							memcpy(&DJI_Judge_Update->DJI_Judge_Msg.Judge_game_robot_pos, (Judge_Data_Get + Judge_Header_LEN + Judge_Cmd_id_LEN), Judge_Len_Robot_Position_Data);
-							break;
-						}
-						case Judge_CmdID_Robot_Gain_Data:
-						{
-							memcpy(&DJI_Judge_Update->DJI_Judge_Msg.Judge_buff, (Judge_Data_Get + Judge_Header_LEN + Judge_Cmd_id_LEN), Judge_Len_Robot_Gain_Data);
-							break;
-						}
-						case Judge_CmdID_Aerial_Robot_Power_Data:
-						{
-							memcpy(&DJI_Judge_Update->DJI_Judge_Msg.Judge_aerial_robot_energy, (Judge_Data_Get + Judge_Header_LEN + Judge_Cmd_id_LEN), Judge_Len_Aerial_Robot_Power_Data);
-							break;
-						}
-						case Judge_CmdID_Heat_Data:
-						{
-							memcpy(&DJI_Judge_Update->DJI_Judge_Msg.Judge_robot_hurt, (Judge_Data_Get + Judge_Header_LEN + Judge_Cmd_id_LEN), Judge_Len_Heat_Data);
-							break;
-						}
-						case Judge_CmdID_Real_Time_Shoot_Data:
-						{
-							memcpy(&DJI_Judge_Update->DJI_Judge_Msg.Judge_shoot_data, (Judge_Data_Get + Judge_Header_LEN + Judge_Cmd_id_LEN), Judge_Len_Real_Time_Shoot_Data);
-							break;
-						}
-						case Judge_CmdID_Bullet_Shoot_Limit:
-						{
-							memcpy(&DJI_Judge_Update->DJI_Judge_Msg.Judge_bullet_remaining, (Judge_Data_Get + Judge_Header_LEN + Judge_Cmd_id_LEN), Judge_Len_Bullet_Shoot_Limit);
-							break;
-						}
-						case Judge_CmdID_Robot_RFID_State:
-						{
-							memcpy(&DJI_Judge_Update->DJI_Judge_Msg.Judge_RFID_status, (Judge_Data_Get + Judge_Header_LEN + Judge_Cmd_id_LEN), Judge_Len_Robot_RFID_State);
-							break;
-						}
-						case Judge_CmdID_Missile_Client_Control_Data:
-						{
-							memcpy(&DJI_Judge_Update->DJI_Judge_Msg.Judge_dart_client_cmd, (Judge_Data_Get + Judge_Header_LEN + Judge_Cmd_id_LEN), Judge_Len_Missile_Client_Control_Data);
-							break;
-						}
-						case Judge_CmdID_Robot_Communication_Data:
-						{
-	//						DJI_Judge_Update->DJI_Judge_Msg.Judge_Student_Data.Judge_Student_Data = Judge_Student_Communicate_Dataa;
-							memcpy(&DJI_Judge_Update->DJI_Judge_Msg.Judge_Student_Data, (Judge_Data_Get + Judge_Header_LEN + Judge_Cmd_id_LEN), DJI_Judge_Update->Judge_Data.frame_header.data_length);
-							break;
-						}	
-					
-					
-					}
-					return Judge_Data_Len;	
-				}
-				return 0;
-			}			
-			return 0;
-		}
-		return 0;
-}	
-
-
-
-void Judge_Data_check(uint8_t* Judge_Data)
-{
-	static int Judge_Len;
-	int i;
-		for(i = 0;i<DJI_Judge_Buf_Len_Max;i++)
-		{		
-			Judge_Len = Judge_Data_Update(Judge_Data+i,&DJI_Judge);	
-			if(Judge_Len!= 0)
+				Target_Structure = &Judge_Data.DJI_Judge_Info.Judge_game_status;
+				break;
+			}
+			case Judge_CmdID_Game_Result:
 			{
-				i = i+ Judge_Len - 1 ;
-			}		
+				Target_Structure = &Judge_Data.DJI_Judge_Info.Judge_game_result;
+				break;
+			}
+			case Judge_CmdID_Game_Robot_HP:
+			{
+				Target_Structure = &Judge_Data.DJI_Judge_Info.Judge_game_robot_HP;
+				break;
+			}
+			case Judge_CmdID_Dart_Status:
+			{
+				Target_Structure = &Judge_Data.DJI_Judge_Info.Judge_dart_client_cmd;
+				break;
+			}
+			case Judge_CmdID_Event:
+			{
+				Target_Structure = &Judge_Data.DJI_Judge_Info.Judge_event_data;
+				break;
+			}
+			case Judge_CmdID_Supply_Projectile_Action:
+			{
+				Target_Structure = &Judge_Data.DJI_Judge_Info.Judge_supply_projectile_action;
+				break;
+			}
+			case Judge_CmdID_Referee_Warning:
+			{
+				Target_Structure = &Judge_Data.DJI_Judge_Info.Judge_referee_warning;
+				break;
+			}
+			case Judge_CmdID_Dart_Remaining_Time:
+			{
+				Target_Structure = &Judge_Data.DJI_Judge_Info.Judge_dart_remaining_time;
+				break;
+			}
+			case Judge_CmdID_Game_Robot_Status:
+			{
+				Target_Structure = &Judge_Data.DJI_Judge_Info.Judge_game_robot_status;
+				break;
+			}
+			case Judge_CmdID_Power_Heat_Data:
+			{
+				Target_Structure = &Judge_Data.DJI_Judge_Info.Judge_power_heat_data;
+				break;
+			}
+			case Judge_CmdID_Game_Robot_Pos:
+			{
+				Target_Structure = &Judge_Data.DJI_Judge_Info.Judge_game_robot_pos;
+				break;
+			}
+			case Judge_CmdID_Buff:
+			{
+				Target_Structure = &Judge_Data.DJI_Judge_Info.Judge_buff;
+				break;
+			}
+			case Judge_CmdID_Aerial_Robot_Energy:
+			{
+				Target_Structure = &Judge_Data.DJI_Judge_Info.Judge_aerial_robot_energy;
+				break;
+			}
+			case Judge_CmdID_Robot_Hurt:
+			{
+				Target_Structure = &Judge_Data.DJI_Judge_Info.Judge_robot_hurt;
+				break;
+			}
+			case Judge_CmdID_Shoot_Data:
+			{
+				Target_Structure = &Judge_Data.DJI_Judge_Info.Judge_shoot_data;
+				break;
+			}
+			case Judge_CmdID_Bullet_Remaining:
+			{
+				Target_Structure = &Judge_Data.DJI_Judge_Info.Judge_bullet_remaining;
+				break;
+			}
+			case Judge_CmdID_RFID_Status:
+			{
+				Target_Structure = &Judge_Data.DJI_Judge_Info.Judge_RFID_status;
+				break;
+			}
+			case Judge_CmdID_Dart_Client_Cmd:
+			{
+				Target_Structure = &Judge_Data.DJI_Judge_Info.Judge_dart_client_cmd;
+				break;
+			}
+			case Judge_CmdID_Robot_Interactive_Data:
+				Target_Structure = &Judge_Data.DJI_Judge_Info.Judge_Student_Data;
+				break;
+			default:
+				break;
 		}
+		if(Target_Structure)
+			memcpy(Target_Structure, Data, Data_Len);
 }
 
-//int* 
+void Judge_Data_Init()
+{	
+		Judge_Data.Judge_Data_Send_Mutex = xSemaphoreCreateBinary();
+		Judge_Data.Judge_Data_Receive_Mutex = xSemaphoreCreateBinary();
+		xSemaphoreGive(Judge_Data.Judge_Data_Send_Mutex);
+		xSemaphoreGive(Judge_Data.Judge_Data_Receive_Mutex);
+}
 
 
-DJI_Judge_Msg_t* Get_Judge_Msg(void)
+static void Data_Parse_Handler(uint8_t* Judge_Data_Buff)
 {
-	return &DJI_Judge.DJI_Judge_Msg;
+		Judge_Frame_Header_t*  Judge_Frame_Header = (Judge_Frame_Header_t*)Judge_Data_Buff;
+		if(verify_crc8_check_sum(Judge_Data_Buff,JUDGE_HEADER_LEN,Judge_Frame_Header->crc8))
+		{
+				//读取帧尾数据并CRC校验
+				uint16_t Data_Len = Judge_Frame_Header->data_length;
+				uint16_t Data_Frame_Len = Data_Len + JUDGE_HEADER_LEN + JUDGE_CMDID_LEN +JUDGE_CRC16_LEN;
+				uint16_t* CRC16 = (uint16_t*)(&Judge_Data_Buff[Data_Frame_Len-JUDGE_CRC16_LEN]);
+				if(verify_crc16_check_sum(Judge_Data_Buff,Data_Frame_Len,*CRC16))
+				{
+						uint8_t* Data = Judge_Data_Buff + JUDGE_HEADER_LEN + JUDGE_CMDID_LEN;
+						Judge_Info_Update(Data,Data_Len,Judge_Frame_Header->cmd_id);
+				}
+		}
+		memset(Judge_Data_Buff,0,DJI_JUDGE_BUF_MAX_LEN);
+		
+}
+
+void Judge_Usart_DMA_Send(uint32_t Size)
+{
+		DMA_SetCurrDataCounter(DMA2_Stream7,Size);						//设置数据传输长度
+		DMA_Cmd(DMA2_Stream7,ENABLE);	
+}
+
+//uint8_t Judge_Student_Data_Get_Receive_Len()
+//{
+//		xSemaphoreTake(Judge_Data.Judge_Data_Receive_Mutex,portMAX_DELAY);
+//		Judge_Data.DJI_Judge_Info.Judge_Student_Data.Judge_Student_Data_Header.
+//		xSemaphoreGive(Judge_Data.Judge_Data_Receive_Mutex)
+//}
+
+//void Judge_Student_Data_Receive()
+//{
+//		xSemaphoreTake(Judge_Data.Judge_Data_Receive_Mutex,portMAX_DELAY);
+//		
+//		xSemaphoreGive(Judge_Data.Judge_Data_Receive_Mutex);
+//}
+
+uint16_t Generate_Target_ID(Judge_Student_Data_Target_t Data_Target)
+{
+		uint16_t Robot_ID = Judge_Data.DJI_Judge_Info.Judge_game_robot_status.robot_id;
+		uint8_t Robot_Role = Robot_ID/100;//红方0，蓝方1
+		uint16_t Target_ID;
+		if(Data_Target==Target_Client)
+		{
+			Target_ID = Robot_ID%100 + Robot_Role?0x164:0x100;
+		}
+		else
+		{
+			Target_ID = Robot_Role*100 + Data_Target;
+		}
+		return Target_ID;
+}
+
+void Judge_Student_Data_Send(uint8_t* Stuent_Data,uint16_t Student_Data_Len,uint16_t Student_CmdID,Judge_Student_Data_Target_t Data_Target)
+{
+		uint16_t Target_ID = Generate_Target_ID(Data_Target);
+		xSemaphoreTake(Judge_Data.Judge_Data_Send_Mutex,portMAX_DELAY);
+		//学生数据帧头地址=起始地址+数据帧头长度+命令码长度
+		Judge_Student_Data_Header_t* Judge_Student_Data_Header = (Judge_Student_Data_Header_t*)(Judge_Data.Judge_Usart_Tx_Buff+JUDGE_HEADER_LEN+JUDGE_CMDID_LEN);
+		//设置学生数据帧头内容
+		Judge_Student_Data_Header->data_cmd_id = Student_CmdID;
+		Judge_Student_Data_Header->sender_ID = Judge_Data.DJI_Judge_Info.Judge_game_robot_status.robot_id;
+		Judge_Student_Data_Header->receiver_ID = Target_ID;
+		//学生数据帧头地址=起始地址+数据帧头长度+命令码长度+学生数据帧头长度
+		uint8_t* Student_Data_Address = (uint8_t*)(Judge_Data.Judge_Usart_Tx_Buff+JUDGE_HEADER_LEN+JUDGE_CMDID_LEN+JUDGE_STUDENT_DATA_HEADER_LEN);
+		//复制学生数据
+		memcpy(Student_Data_Address,Stuent_Data,Student_Data_Len);
+		//帧数据长度=学生数据长度+学生数据帧头长度
+		uint16_t Data_Len = Student_Data_Len + JUDGE_STUDENT_DATA_HEADER_LEN;
+		//数据帧头地址等于起始地址
+		Judge_Frame_Header_t* Judge_Frame_Header = (Judge_Frame_Header_t*)Judge_Data.Judge_Usart_Tx_Buff;
+		//设置数据帧头内容
+		Judge_Frame_Header->cmd_id = Judge_CmdID_Robot_Interactive_Data;
+		Judge_Frame_Header->sof = DJI_JUDGE_HEADER_SOF;
+		Judge_Frame_Header->seq = Judge_Data.Judge_Data_Send_Count++;
+		Judge_Frame_Header->data_length = Data_Len;
+		append_crc8_check_sum(Judge_Data.Judge_Usart_Tx_Buff,JUDGE_HEADER_LEN,&Judge_Frame_Header->crc8);
+		//数据帧总长=帧数据长度+数据帧头长度+命令码长度+数据帧尾长度
+		uint16_t Data_Frame_Len = Data_Len + JUDGE_HEADER_LEN + JUDGE_CMDID_LEN +JUDGE_CRC16_LEN;
+		//数据帧尾地址=起始地址+数据帧总长-数据帧尾长度
+		uint16_t* CRC16 = (uint16_t*)(&Judge_Data.Judge_Usart_Tx_Buff[Data_Frame_Len-JUDGE_CRC16_LEN]);
+		//设置数据帧尾内容：CRC16校验值
+		append_crc16_check_sum(Judge_Data.Judge_Usart_Tx_Buff,Data_Frame_Len,CRC16);
+		//DMA 发送
+		Judge_Usart_DMA_Send(Data_Frame_Len);
+}
+
+void USART6_IRQHandler(void)
+{
+
+    if (USART_GetITStatus(USART6, USART_IT_IDLE) != RESET)
+    {
+			USART_ClearFlag(USART6,USART_FLAG_IDLE);
+			USART_ReceiveData(USART6);
+
+			if(DMA_GetCurrentMemoryTarget(DMA2_Stream1) == 0)
+			{
+					
+					DMA_Cmd(DMA2_Stream1,DISABLE);
+					DMA_SetCurrDataCounter(DMA2_Stream1,DJI_JUDGE_BUF_MAX_LEN);
+					DMA2_Stream1->CR |= DMA_SxCR_CT;
+					DMA_ClearFlag(DMA2_Stream1, DMA_FLAG_TCIF1 | DMA_FLAG_HTIF1);
+					DMA_Cmd(DMA2_Stream1, ENABLE);
+					Data_Parse_Handler(Judge_Data.Judge_Usart_Rx_Buff[0]);
+			}
+			else
+			{
+					DMA_Cmd(DMA2_Stream1,DISABLE);
+					DMA_SetCurrDataCounter(DMA2_Stream1,DJI_JUDGE_BUF_MAX_LEN);
+					DMA2_Stream1->CR &= ~(DMA_SxCR_CT);
+					DMA_ClearFlag(DMA2_Stream1, DMA_FLAG_TCIF1 | DMA_FLAG_HTIF1);
+					DMA_Cmd(DMA2_Stream1, ENABLE);
+					Data_Parse_Handler(Judge_Data.Judge_Usart_Rx_Buff[1]);
+						
+			}
+				
+    }
+//		else if(DMA_GetITStatus(DMA1_Stream2,DMA_IT_DMEIF2) != RESET)
+//    {
+//        USART_ReceiveData(USART6);
+//    }
+}
+
+void DMA2_Stream7_IRQHandler(void)
+{
+		if(DMA_GetFlagStatus(DMA2_Stream7,DMA_FLAG_TCIF7)!=RESET)
+		{
+				DMA_ClearFlag(DMA2_Stream7,DMA_FLAG_TCIF7);
+				DMA_Cmd(DMA2_Stream7,DISABLE);
+				xSemaphoreGiveFromISR(Judge_Data.Judge_Data_Send_Mutex,NULL);
+		}
 }

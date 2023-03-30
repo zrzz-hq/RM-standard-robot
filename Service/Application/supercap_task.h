@@ -67,7 +67,7 @@ typedef struct
 		supercap_mode_t supercap_mode;
 		cap_send_data_t cap_send_data;
 		cap_receive_data_t cap_receive_data;
-		DJI_Judge_Msg_t* dji_judge_msg;
+		Judge_Info_t* dji_judge_info;
 		Super_C_Msg_t* super_c_msg;
 		uint8_t robot_id;
 		uint8_t last_robot_id;

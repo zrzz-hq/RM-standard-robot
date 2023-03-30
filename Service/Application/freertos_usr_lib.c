@@ -62,3 +62,37 @@ ListItem_t* Iterate_All_ListItem(List_t* List,void* Usr_Data1,void* Usr_Data2,in
 		}
 		return ListItem;
 }
+
+QueueHandle_t Msg_Queue_Create(UBaseType_t Len)
+{
+		return xQueueCreate(Len,sizeof(Msg_t));
+}
+
+BaseType_t Msg_Queue_Send(QueueHandle_t Handle,void* Data,uint16_t Data_Len,TickType_t Timeout)
+{
+		Msg_t Msg;
+		Msg.Msg_Len = Data_Len;
+		Msg.Msg = pvPortMalloc(Data_Len);
+		memcpy(Msg.Msg,Data,Data_Len);
+		return xQueueSend(Handle,&Msg,Timeout);
+}
+
+uint16_t Msg_Queue_Get_Receive_Len(QueueHandle_t Handle,TickType_t Timeout)
+{
+		Msg_t Msg;
+		if(xQueuePeek(Handle,&Msg,Timeout)==pdTRUE)
+			return Msg.Msg_Len;
+		return 0;
+}
+
+BaseType_t Msg_Queue_Receive(QueueHandle_t Handle,void* Data,TickType_t Timeout)
+{
+		Msg_t Msg;
+		if(xQueueReceive(Handle,&Msg,Timeout)==pdTRUE)
+		{
+				memcpy(Data,Msg.Msg,Msg.Msg_Len);
+				vPortFree(Msg.Msg);
+				return pdTRUE;
+		}
+		return pdFALSE;
+}

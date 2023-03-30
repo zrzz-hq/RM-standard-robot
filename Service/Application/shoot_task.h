@@ -95,7 +95,7 @@ typedef struct
 	
 	Motor_Msg_t* Fric_Motor_Msg_Get[2];
 	Motor_Msg_t* Trigger_Motor_Msg_Get;
-	DJI_Judge_Msg_t* Shoot_Judge_Msg_Get;
+	Judge_Info_t* Shoot_Judge_Info_Get;
 	const RC_Ctl_t* Shoot_RC_Ctl_Data;	
 	
 	PID Fric_Motor_Pid[2];

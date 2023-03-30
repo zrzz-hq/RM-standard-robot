@@ -111,7 +111,7 @@ void Chassis_Init(Chassis_t* Chassis_Data_Init)
 	Chassis_Data_Init->Chassis_RC_Ctl_Data = Get_DJI_RC_Data_Address();
 	
 	//裁判系统数据获取
-	Chassis_Data_Init->Chassis_Judge_Msg_Get = Get_Judge_Msg();
+	Chassis_Data_Init->Chassis_Judge_Info_Get = Get_Judge_Info();
 	//底盘最大速度获取
 	Chassis_Data_Init->Chassis_X_Max_Speed = CHASSIS_X_MAX_SPEED;
 	Chassis_Data_Init->Chassis_Y_Max_Speed = CHASSIS_Y_MAX_SPEED;
@@ -519,9 +519,9 @@ void Chassis_Data_Update(Chassis_t* Chassis_Update)
 	Chassis_Update->Chassis_Motor_Speed_Get[2]=Chassis_Update->Chassis_Motor_Msg_Get[2]->Speed*CHASSIS_3508_RPM_TO_WHEEL_SPEED;
 	Chassis_Update->Chassis_Motor_Speed_Get[3]=Chassis_Update->Chassis_Motor_Msg_Get[3]->Speed*CHASSIS_3508_RPM_TO_WHEEL_SPEED;
 	//裁判系统数据更新
-	Chassis_Update->Chassis_Power = Chassis_Update->Chassis_Judge_Msg_Get->Judge_power_heat_data.chassis_power;
-	Chassis_Update->Chassis_Power_Buffer = Chassis_Update->Chassis_Judge_Msg_Get->Judge_power_heat_data.chassis_power_buffer;
-	Chassis_Update->Chassis_Max_Power = Chassis_Update->Chassis_Judge_Msg_Get->Judge_game_robot_status.max_HP;
+	Chassis_Update->Chassis_Power = Chassis_Update->Chassis_Judge_Info_Get->Judge_power_heat_data.chassis_power;
+	Chassis_Update->Chassis_Power_Buffer = Chassis_Update->Chassis_Judge_Info_Get->Judge_power_heat_data.chassis_power_buffer;
+	Chassis_Update->Chassis_Max_Power = Chassis_Update->Chassis_Judge_Info_Get->Judge_game_robot_status.max_HP;
 }
 
 void Chassis_Task(void *pvParameters)

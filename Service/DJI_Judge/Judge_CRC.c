@@ -91,13 +91,13 @@ uint8_t get_crc8_check_sum(uint8_t* pchMessage, uint16_t dwLength, uint8_t ucCRC
 ** Input: Data to Verify,Stream length = Data + checksum
 ** Output: True or False (CRC Verify Result)
 */
-uint8_t verify_crc8_check_sum(uint8_t* pchMessage, uint16_t dwLength)
+uint8_t verify_crc8_check_sum(uint8_t* pchMessage, uint16_t dwLength, uint8_t ucReal)
 {
     uint8_t ucExpected = 0;
     if ((pchMessage == 0) || (dwLength <= 2))
         return 0;
     ucExpected = get_crc8_check_sum(pchMessage, dwLength - 1, CRC8_INIT);
-    return (ucExpected == pchMessage[dwLength - 1]);
+    return (ucExpected == ucReal);
 }
 
 /*
@@ -105,13 +105,13 @@ uint8_t verify_crc8_check_sum(uint8_t* pchMessage, uint16_t dwLength)
 ** Input: Data to CRC and append,Stream length = Data + checksum
 ** Output: True or False (CRC Verify Result)
 */
-void append_crc8_check_sum(uint8_t* pchMessage, uint16_t dwLength)
+void append_crc8_check_sum(uint8_t* pchMessage, uint16_t dwLength, uint8_t* pucCRC)
 {
     uint8_t ucCRC = 0;
     if ((pchMessage == 0) || (dwLength <= 2))
         return;
     ucCRC                    = get_crc8_check_sum((uint8_t*)pchMessage, dwLength - 1, CRC8_INIT);
-    pchMessage[dwLength - 1] = ucCRC;
+    *pucCRC = ucCRC;
 }
 
 /*
@@ -139,7 +139,7 @@ uint16_t get_crc16_check_sum(uint8_t* pchMessage, uint32_t dwLength, uint16_t wC
 ** Input: Data to Verify,Stream length = Data + checksum
 ** Output: True or False (CRC Verify Result)
 */
-uint8_t verify_crc16_check_sum(uint8_t* pchMessage, uint32_t dwLength)
+uint8_t verify_crc16_check_sum(uint8_t* pchMessage, uint32_t dwLength, uint16_t wReal)
 {
     uint16_t wExpected = 0;
     if ((pchMessage == NULL) || (dwLength <= 2))
@@ -147,7 +147,7 @@ uint8_t verify_crc16_check_sum(uint8_t* pchMessage, uint32_t dwLength)
         return 0;
     }
     wExpected = get_crc16_check_sum(pchMessage, dwLength - 2, CRC_INIT);
-    return ((wExpected & 0xff) == pchMessage[dwLength - 2] && ((wExpected >> 8) & 0xff) == pchMessage[dwLength - 1]);
+    return (wExpected == wReal);
 }
 
 /*
@@ -155,7 +155,7 @@ uint8_t verify_crc16_check_sum(uint8_t* pchMessage, uint32_t dwLength)
 ** Input: Data to CRC and append,Stream length = Data + checksum
 ** Output: True or False (CRC Verify Result)
 */
-void append_crc16_check_sum(uint8_t* pchMessage, uint32_t dwLength)
+void append_crc16_check_sum(uint8_t* pchMessage, uint32_t dwLength, uint16_t* pwCRC)
 {
     uint16_t wCRC = 0;
     if ((pchMessage == NULL) || (dwLength <= 2))
@@ -163,8 +163,7 @@ void append_crc16_check_sum(uint8_t* pchMessage, uint32_t dwLength)
         return;
     }
     wCRC                     = get_crc16_check_sum((uint8_t*)pchMessage, dwLength - 2, CRC_INIT);
-    pchMessage[dwLength - 2] = (uint8_t)(wCRC & 0x00ff);
-    pchMessage[dwLength - 1] = (uint8_t)((wCRC >> 8) & 0x00ff);
+    *pwCRC = wCRC;
 }
 
 

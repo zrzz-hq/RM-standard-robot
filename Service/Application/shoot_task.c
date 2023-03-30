@@ -264,7 +264,7 @@ void Shoot_Init(Shoot_t* Data_Init)
 		//遥控器数据获取
 		Data_Init->Shoot_RC_Ctl_Data = Get_DJI_RC_Data_Address();
 		//裁判系统数据获取
-		Data_Init->Shoot_Judge_Msg_Get = Get_Judge_Msg();
+		Data_Init->Shoot_Judge_Info_Get = Get_Judge_Info();
 		//初始化PID
 		pid_init(&Data_Init->Fric_Motor_Pid[0],FRIC_MOTOR_LEFT_KP,FRIC_MOTOR_LEFT_KI,FRIC_MOTOR_LEFT_KD,FRIC_MOTOR_LEFT_MAXOUT,FRIC_MOTOR_LEFT_IMAXOUT,PID_POSITON);	
 		pid_init(&Data_Init->Fric_Motor_Pid[1],FRIC_MOTOR_RIGHT_KP,FRIC_MOTOR_RIGHT_KI,FRIC_MOTOR_RIGHT_KD,FRIC_MOTOR_RIGHT_MAXOUT,FRIC_MOTOR_RIGHT_IMAXOUT,PID_POSITON);	
@@ -380,23 +380,23 @@ void Shoot_Data_Update(Shoot_t* Data_Update)
 		Data_Update->Trigger_Motor_Speed_Get=Data_Update->Trigger_Motor_Msg_Get->Speed/60/36*Data_Update->Bullets_Per_Rotation;
 		Data_Update->Shoot_Key = Shoot_Key_Read();
 		//裁判系统数据更新
-		Data_Update->Judge_Robot_ID = Data_Update->Shoot_Judge_Msg_Get->Judge_game_robot_status.robot_id;
+		Data_Update->Judge_Robot_ID = Data_Update->Shoot_Judge_Info_Get->Judge_game_robot_status.robot_id;
 		if(Data_Update->Judge_Robot_ID!=0)
 		{
 				//判断是否是英雄，如果是英雄使用42mm发射机构数据
 				if(Data_Update->Judge_Robot_ID == Red_Hero||Data_Update->Judge_Robot_ID == Blue_Hero)
 				{
-						Data_Update->Judge_Shoot_Cooling_Limit = Data_Update->Shoot_Judge_Msg_Get->Judge_game_robot_status.shooter_id1_42mm_cooling_limit;
-						Data_Update->Judge_Shoot_Cooling_Rate = Data_Update->Shoot_Judge_Msg_Get->Judge_game_robot_status.shooter_id1_42mm_cooling_rate;
-						Data_Update->Judge_Shoot_Cooling_Heat = Data_Update->Shoot_Judge_Msg_Get->Judge_power_heat_data.shooter_id1_42mm_cooling_heat;
-						Data_Update->Judge_Shoot_Speed_Limit = Data_Update->Shoot_Judge_Msg_Get->Judge_game_robot_status.shooter_id1_42mm_speed_limit;
+						Data_Update->Judge_Shoot_Cooling_Limit = Data_Update->Shoot_Judge_Info_Get->Judge_game_robot_status.shooter_id1_42mm_cooling_limit;
+						Data_Update->Judge_Shoot_Cooling_Rate = Data_Update->Shoot_Judge_Info_Get->Judge_game_robot_status.shooter_id1_42mm_cooling_rate;
+						Data_Update->Judge_Shoot_Cooling_Heat = Data_Update->Shoot_Judge_Info_Get->Judge_power_heat_data.shooter_id1_42mm_cooling_heat;
+						Data_Update->Judge_Shoot_Speed_Limit = Data_Update->Shoot_Judge_Info_Get->Judge_game_robot_status.shooter_id1_42mm_speed_limit;
 				}
 				else
 				{
-						Data_Update->Judge_Shoot_Cooling_Limit = Data_Update->Shoot_Judge_Msg_Get->Judge_game_robot_status.shooter_id1_17mm_cooling_limit;
-						Data_Update->Judge_Shoot_Cooling_Rate = Data_Update->Shoot_Judge_Msg_Get->Judge_game_robot_status.shooter_id1_17mm_cooling_rate;
-						Data_Update->Judge_Shoot_Cooling_Heat = Data_Update->Shoot_Judge_Msg_Get->Judge_power_heat_data.shooter_id1_17mm_cooling_heat;
-						Data_Update->Judge_Shoot_Speed_Limit = Data_Update->Shoot_Judge_Msg_Get->Judge_game_robot_status.shooter_id1_17mm_speed_limit;
+						Data_Update->Judge_Shoot_Cooling_Limit = Data_Update->Shoot_Judge_Info_Get->Judge_game_robot_status.shooter_id1_17mm_cooling_limit;
+						Data_Update->Judge_Shoot_Cooling_Rate = Data_Update->Shoot_Judge_Info_Get->Judge_game_robot_status.shooter_id1_17mm_cooling_rate;
+						Data_Update->Judge_Shoot_Cooling_Heat = Data_Update->Shoot_Judge_Info_Get->Judge_power_heat_data.shooter_id1_17mm_cooling_heat;
+						Data_Update->Judge_Shoot_Speed_Limit = Data_Update->Shoot_Judge_Info_Get->Judge_game_robot_status.shooter_id1_17mm_speed_limit;
 				}
 				Data_Update->Judge_Shoot_Heat_Percent = (float)Data_Update->Judge_Shoot_Cooling_Heat/Data_Update->Judge_Shoot_Cooling_Limit;
 				Data_Update->Judge_Shoot_Cool_Percent = (float)Data_Update->Judge_Shoot_Cooling_Rate/Data_Update->Judge_Shoot_Cooling_Limit;

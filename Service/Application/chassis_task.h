@@ -90,7 +90,7 @@ typedef struct
 	const float* Chassis_IMU_Aspeed;
 	const RC_Ctl_t* Chassis_RC_Ctl_Data;//遥控器控制值获取	
 	const Motor_Msg_t* Chassis_Motor_Msg_Get[4];
-	const DJI_Judge_Msg_t* Chassis_Judge_Msg_Get;
+	const Judge_Info_t* Chassis_Judge_Info_Get;
 	const Super_C_Msg_t* Chassis_Cap_Msg_Get;
 	
 	float Chassis_X_Max_Speed;

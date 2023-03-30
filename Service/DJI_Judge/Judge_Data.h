@@ -5,241 +5,18 @@
 
 #include "stm32f4xx.h"
 #include "stm32f4xx_it.h"
+#include "freertos_usr_lib.h"
 
-#define DJI_Judge_Student_CmdID 0x0301
+#define DJI_JUDGE_BUF_MAX_LEN 200
+#define DJI_JUDGE_HEADER_SOF 0xA5
 
-#define DJI_Judge_Buf_Len_Max 200
+#define JUDGE_HEADER_LEN 5
+#define JUDGE_CMDID_LEN 2
+#define JUDGE_CRC16_LEN 2
+#define JUDGE_DATALEN_LEN 2
 
-#define DJI_Judge_Header_SOF 0xA5
-
-#define Judge_Header_LEN 5
-#define Judge_Cmd_id_LEN 2
-#define Judge_CRC16_LEN 2
-
-typedef enum
-{
-	Judge_Data_Set_OK = 1,
-	Judge_Data_Set_Error = 0
-}Judge_Data_SeT_State;
-
-/**
-  * @brief  frame header structure definition
-  */
-typedef __packed struct
-{
-  uint8_t  sof;
-  uint16_t data_length;
-  uint8_t  seq;
-  uint8_t  crc8;
-} frame_header_t;
-
-
-
-typedef __packed struct
-{
- uint16_t data_cmd_id;
- uint16_t sender_ID;
- uint16_t receiver_ID;
-}Judge_student_interactive_header_data_t;
-
-typedef __packed struct
-{
-	uint8_t* Data;
-}Judge_student_data_t;
-
-typedef __packed struct
-{
-	//头帧
-  frame_header_t frame_header;
-	//命令码
-	uint16_t cmdid;
-	//数据
-	uint8_t* Data;
-	//帧尾校验
-	uint16_t crc16;
-} Judge_Get_Data_t;
-
-typedef __packed struct
-{
-	//头帧
-  frame_header_t frame_header;
-	//命令码
-	uint16_t cmdid;
-	//学生串口发送内容ID，发送者ID，接收者ID
-	Judge_student_interactive_header_data_t Judge_student_interactive_header_data;	
-	//数据
-//	Judge_student_data_t Judge_student_data;
-	//帧尾校验
-	uint16_t crc16;
-} Judge_Send_Data_t;
-
-//发送数据长度
-typedef enum
-{
-	Graphic_Delete_Long = 2,
-	Graphic_Single_Long = 15,
-	Graphic_double_Long = 30,
-	Graphic_five_Long = 75,
-	Graphic_seven_Long = 105,
-	Graphic_character_Long = 45
-}Judge_Graphic_Data_Long_t;
-
-
-//图形操作
-typedef enum
-{
-	Graphic_None = 0,
-	Graphic_Add = 1,
-	Graphic_Change = 2,
-	Graphic_Delete = 3
-}Judge_Graphic_Control_t;
-
-//图形类型
-typedef enum
-{
-	Straight_Line = 0,//直线
-	Rectangle = 1,//矩形
-	All_Circle = 2,//正圆
-	Oval_Circle = 3,//椭圆
-	Arc_Circle = 4,//圆弧
-	Floating = 5,//浮点数
-	Integer = 6,//整型数
-	Character = 7//字符
-}Judge_Graphic_Type_t;
-
-//图形数据
-typedef __packed struct
-{
-	uint8_t graphic_name[3];
-	uint32_t operate_tpye:3;
-	uint32_t graphic_tpye:3;
-	uint32_t layer:4;
-	uint32_t color:4;
-	uint32_t start_angle:9;
-	uint32_t end_angle:9;
-	uint32_t width:10;
-	uint32_t start_x:11;
-	uint32_t start_y:11; 
-	uint32_t radius:10;
-	uint32_t end_x:11;
-	uint32_t end_y:11;
-//	union Graphoc_Last_Data_t Graphoc_Last_Data;480
-}graphic_data_struct_t;
-
-
-//图形数据
-typedef __packed struct
-{
-	uint8_t graphic_name[3];
-	uint32_t operate_tpye:3;
-	uint32_t graphic_tpye:3;
-	uint32_t layer:4;
-	uint32_t color:4;
-	uint32_t start_angle:9;
-	uint32_t end_angle:9;
-	uint32_t width:10;
-	uint32_t start_x:11;
-	uint32_t start_y:11; 
-	uint8_t Word_Data[4];
-//	uint32_t radius:10;
-//	uint32_t end_x:11;
-//	uint32_t end_y:11;
-//	union Graphoc_Last_Data_t Graphoc_Last_Data;480
-}Word_data_struct_t;	
-
-
-
-//客户端删除图形 机器人间通信：0x0301
-typedef __packed struct
-{
-	uint8_t operate_tpye;
-	uint8_t layer;
-}Judge_client_custom_graphic_delete_t;
-
-
-//客户端绘制一个图形
-typedef __packed struct
-{
- graphic_data_struct_t grapic_data_struct;
-}Judge_client_custom_graphic_single_t;
-
-//客户端绘制二个图形
-typedef __packed struct
-{
-graphic_data_struct_t grapic_data_struct[2];
-}Judge_client_custom_graphic_double_t;
-
-//客户端绘制五个图形
-typedef __packed struct
-{
-graphic_data_struct_t grapic_data_struct[5];
-}Judge_client_custom_graphic_five_t;
-
-//客户端绘制七个图形
-typedef __packed struct
-{
-graphic_data_struct_t grapic_data_struct[7];
-}Judge_client_custom_graphic_seven_t;
-
-//客户端绘制字符 
-typedef __packed struct
-{
-	graphic_data_struct_t grapic_data_struct;
-	uint8_t data[30];
-}Judge_client_custom_character_t;
-
-union Judge_Graphic_Client_Single_t
-{
-		Word_data_struct_t Word_data_struct;
-	graphic_data_struct_t grapic_data_struct;
-	uint8_t Judge_client_custom_graphic_single_Data[15];
-};
-
-union Judge_Graphic_Client_Double_t
-{
-	Word_data_struct_t Word_data_struct[2];
-	graphic_data_struct_t grapic_data_struct[2];
-	uint8_t Judge_client_custom_graphic_double_Data[30];
-};
-
-union Judge_Graphic_Client_Five_t
-{
-	Word_data_struct_t Word_data_struct[5];
-	graphic_data_struct_t grapic_data_struct[5];
-	uint8_t Judge_client_custom_graphic_five_Data[75];
-};
-
-union Judge_Graphic_Client_Seven_t
-{
-	Word_data_struct_t Word_data_struct[7];
-	graphic_data_struct_t grapic_data_struct[7];
-	uint8_t Judge_client_custom_graphic_seven_Data[105];
-};
-
-
-union Judge_Character_Client_t
-{
-	Judge_client_custom_character_t Judge_client_custom_character;
-	uint8_t Judge_Character_Data[45];
-};
-
-union Judge_Graphic_Delet_t
-{
-	Judge_client_custom_graphic_delete_t Judge_client_custom_graphic_delete;
-	uint8_t Judge_Character_Delete_Data[2];
-};
-
-
-//客户端发送数据
-typedef struct
-{
-	union Judge_Graphic_Delet_t Judge_Graphic_Delet;
-	union Judge_Graphic_Client_Single_t Judge_Graphic_Client_Single;
-	union Judge_Graphic_Client_Double_t Judge_Graphic_Client_Double;
-	union Judge_Graphic_Client_Five_t Judge_Graphic_Client_Five;
-	union Judge_Graphic_Client_Seven_t Judge_Graphic_Client_Seven;
-	union	Judge_Character_Client_t Judge_Character_Client;
-}DJI_Judge_Send_Msg_t;
+#define JUDGE_STUDENT_DATA_MAX_LEN 113
+#define JUDGE_STUDENT_DATA_HEADER_LEN 6
 
 /*******************************************************************************
 	--------------------------------Cmd_ID----------------------------------------
@@ -270,29 +47,44 @@ typedef struct
 	-----------------------------------------------------------------------------
 ******************************************************************************/
 
+typedef enum
+{
+		Target_Client,
+		Target_Hero,
+		Target_Engineer,
+		Target_Standard1,
+		Target_Standard2,
+		Target_Standard3,
+		Target_Aerial,
+		Target_Sentry,
+		Target_Radar,
+}Judge_Student_Data_Target_t;
+
 //命令码ID,用来判断接收的是什么数据
 typedef enum
 { 
 	Judge_CmdID_Game_State = 0x0001,
 	Judge_CmdID_Game_Result = 0x0002,
-	Judge_CmdID_Robot_Blood = 0x0003,
-	Judge_CmdID_Missile_State = 0x0004,
-	Judge_CmdID_Area_Event = 0x0101,
-	Judge_CmdID_Area_Supply_Station_Action_Data = 0x0102,
-	Judge_CmdID_Waening_Data = 0x0104,
-	Judge_CmdID_Missile_Time_Limit_Count = 0x0105,
-	Judge_CmdID_Robot_State = 0x0201,
-	Judge_CmdID_Real_Time_Power_Heat = 0x0202,
-	Judge_CmdID_Robot_Position_Data = 0x0203,
-	Judge_CmdID_Robot_Gain_Data = 0x0204,
-	Judge_CmdID_Aerial_Robot_Power_Data = 0x0205,
-	Judge_CmdID_Heat_Data = 0x0206,
-	Judge_CmdID_Real_Time_Shoot_Data = 0x0207,
-	Judge_CmdID_Bullet_Shoot_Limit = 0x0208,
-	Judge_CmdID_Robot_RFID_State = 0x0209,
-	Judge_CmdID_Missile_Client_Control_Data = 0x020A,
-	Judge_CmdID_Robot_Communication_Data = 0x0301
-}DJI_Judge_CmdID_t;
+	Judge_CmdID_Game_Robot_HP = 0x0003,
+	Judge_CmdID_Dart_Status = 0x0004,
+	Judge_CmdID_ICRA_Status = 0x0005,
+	Judge_CmdID_Event = 0x0101,
+	Judge_CmdID_Supply_Projectile_Action = 0x0102,
+	Judge_CmdID_Referee_Warning = 0x0104,
+	Judge_CmdID_Dart_Remaining_Time = 0x0105,
+	Judge_CmdID_Game_Robot_Status = 0x0201,
+	Judge_CmdID_Power_Heat_Data = 0x0202,
+	Judge_CmdID_Game_Robot_Pos = 0x0203,
+	Judge_CmdID_Buff = 0x0204,
+	Judge_CmdID_Aerial_Robot_Energy = 0x0205,
+	Judge_CmdID_Robot_Hurt = 0x0206,
+	Judge_CmdID_Shoot_Data = 0x0207,
+	Judge_CmdID_Bullet_Remaining = 0x0208,
+	Judge_CmdID_RFID_Status = 0x0209,
+	Judge_CmdID_Dart_Client_Cmd = 0x020A,
+	Judge_CmdID_Robot_Interactive_Data = 0x0301
+	
+}Judge_CmdID_t;
 
 typedef enum
 { 
@@ -315,7 +107,7 @@ typedef enum
 	Judge_Len_Robot_RFID_State = 4,
 	Judge_Len_Missile_Client_Control_Data = 12,
 //	Judge_Len_Robot_Communication_Data = n
-}DJI_Judge_Len_t;
+}Judge_Len_t;
 
 /***
 比赛状态数据
@@ -589,12 +381,20 @@ typedef __packed struct
 	uint16_t operate_launch_cmd_time;
 } ext_dart_client_cmd_t;
 
+
+
 typedef __packed struct
 {
-	Judge_student_interactive_header_data_t Judge_student_interactive_header_data;
-	uint8_t Judge_Student_Data_Get[113];	
-}Judge_Student_Data_t;
+	uint16_t data_cmd_id;
+	uint16_t sender_ID;
+	uint16_t receiver_ID;
+}Judge_Student_Data_Header_t;
 
+typedef __packed struct
+{
+	Judge_Student_Data_Header_t Judge_Student_Data_Header;
+	uint8_t Data[JUDGE_STUDENT_DATA_MAX_LEN];
+}Judge_Student_Data_t;
 
 /***
 兵种名单
@@ -623,6 +423,8 @@ typedef enum
 		
 } Judge_Robot_ID_t;
 
+
+
 typedef struct
 {
 	Judge_Robot_ID_t Judge_Robot_ID;
@@ -644,42 +446,38 @@ typedef struct
 	ext_rfid_status_t Judge_RFID_status;
 	ext_dart_client_cmd_t Judge_dart_client_cmd;
 	Judge_Student_Data_t Judge_Student_Data;
-	
-} DJI_Judge_Msg_t;
+} Judge_Info_t;
 
-
+typedef __packed struct
+{
+  //帧头
+	uint8_t  sof;
+	//数据长度
+  uint16_t data_length;
+	//包序号
+  uint8_t  seq;
+	//帧头校验
+  uint8_t  crc8;
+	//命令码，也算作帧头一部分
+	uint16_t cmd_id;
+} Judge_Frame_Header_t;
 
 typedef struct
 {
-	
-	int Data_len;
-	Judge_Get_Data_t Judge_Data;
-	Judge_Send_Data_t Judge_Send_Data;
-	DJI_Judge_Msg_t DJI_Judge_Msg;
-	DJI_Judge_Send_Msg_t DJI_Judge_Send_Msg;
-} DJI_Judge_t;
+	uint8_t Judge_Usart_Rx_Buff[2][DJI_JUDGE_BUF_MAX_LEN];
+	uint8_t Judge_Usart_Tx_Buff[DJI_JUDGE_BUF_MAX_LEN];
+	Judge_Info_t DJI_Judge_Info;
+	uint8_t Judge_Data_Send_Count;
+	uint8_t Judge_Data_Receive_Count;
+	SemaphoreHandle_t Judge_Data_Send_Mutex;
+	SemaphoreHandle_t Judge_Data_Receive_Mutex;
+	TaskHandle_t Judge_Data_Task_Handle;
+	uint8_t Judge_Usart_Current_Rx_Buff;
+}Judge_Data_t;
 
-
-void Judge_Graphic_Data_Set(graphic_data_struct_t* graphic_data,uint8_t* Graphic_Name,Judge_Graphic_Type_t Judge_Graphic_Type,Judge_Graphic_Control_t Judge_Graphic_Control,\
-int Grap_Board_Num,int Grap_Colour,int Grap_start_angle,int Grap_end_angle,int Grap_width,int Grap_start_x,int Grap_start_y,int Grap_size,int Grap_end_x,int Grap_end_y);
-
-void Judge_Word_Data_Set(Word_data_struct_t* Word_data_Set,uint8_t* Graphic_Name,Judge_Graphic_Type_t Judge_Graphic_Type,Judge_Graphic_Control_t Judge_Graphic_Control,\
-int Grap_Board_Num,int Grap_Colour,int Grap_Word_Size,int Grap_Word_Lenth,int Grap_width,int Grap_start_x,int Grap_start_y,float Flost_32_Data,int32_t Int_32_Data);
-
-void Judge_Character_Data_Set(Judge_client_custom_character_t* Judge_client_custom_character_Set,uint8_t* Graphic_Name,Judge_Graphic_Type_t Judge_Graphic_Type,Judge_Graphic_Control_t Judge_Graphic_Control,\
-int Grap_Board_Num,int Grap_Colour,int Grap_Word_Size,int Grap_Word_Lenth,int Grap_width,int Grap_start_x,int Grap_start_y,uint8_t* Send_Character);
-
-void Judge_Graphic_operate_tpye_Set(graphic_data_struct_t* graphic_data_struct_Update,uint8_t* Graphic_Name,Judge_Graphic_Control_t Judge_Graphic_Update);
-void Judge_Word_operate_tpye_Set(Word_data_struct_t* Word_data_struct_Update,uint8_t* Graphic_Name,Judge_Graphic_Control_t Judge_Graphic_Update);
-void Judge_Character_operate_tpye_Set(Judge_client_custom_character_t* Judge_client_custom_character_Update,uint8_t* Graphic_Name,Judge_Graphic_Control_t Judge_Graphic_Update);
-
-void Judge_Delete_Data_Send(union Judge_Graphic_Delet_t *	Judge_client_custom_graphic_delete_Set,uint8_t graphic_Set,uint8_t graphic_Num);
-
-void Judge_Data_Send(DJI_Judge_t* DJI_Judge_Send_Data,uint16_t Stu_data_cmd_id,uint16_t Stu_Get_id, uint8_t *p_data , int Data_long);
-void Judge_Data_Send_To_Client(DJI_Judge_t* DJI_Judge_Send_Data,uint16_t Stu_data_cmd_id, uint8_t* p_data , int Data_long);
-
-int Judge_Data_Update(uint8_t* Judge_Data_Get,DJI_Judge_t* DJI_Judge_Update);
-void Judge_Data_check(uint8_t* Judge_Data);
-DJI_Judge_Msg_t* Get_Judge_Msg(void);
+void Judge_Usart_Init(void);
+void Judge_Data_Init(void);
+Judge_Info_t* Get_Judge_Info(void);
+void Judge_Student_Data_Send(uint8_t* Stuent_Data,uint16_t Student_Data_Len,uint16_t Student_CmdID,Judge_Student_Data_Target_t Data_Target);
 
 #endif 
