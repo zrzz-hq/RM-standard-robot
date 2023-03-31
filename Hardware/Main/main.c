@@ -38,8 +38,8 @@ int main(void)
 	
 
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4); 
-	
-	//__disable_irq();
+	//第一阶段初始化：初始化硬件
+	__disable_irq();
 	//Usb_Init();	
 	Led_Init();
 	
@@ -51,7 +51,6 @@ int main(void)
 	Power_24V_Init();
 
 	USART3_Init();
-	//USART6_Init();
 	UART7_Init();
 	UART8_Init();
 	
@@ -74,10 +73,10 @@ int main(void)
 	GPIO_SPI_Init();
 	SPI1_Init();
 	SD_LowLevel_Init();
-	//__enable_irq();
+	__enable_irq();
 	
 	
-	Create_Data_Task();
+	Create_Start_Task();
 	vTaskStartScheduler();//开启任务调度
 	while(1)             
 	{

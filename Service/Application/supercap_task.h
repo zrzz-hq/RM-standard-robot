@@ -13,7 +13,7 @@
 #define DEFAULT_CHASSIS_POWER_LIMIT 60
 #define DEFAULT_CHASSIS_POWER_BUFFER 60
 
-#define SUPERCAP_TASK_PRIO 14
+#define SUPERCAP_TASK_PRIO 25
 #define SUPERCAP_STK_SIZE 512
 extern TaskHandle_t SuperCapTask_Handler;
 
@@ -81,5 +81,7 @@ typedef struct
 
 void supercap_task(void *pvParameters);
 void supercap_data_parser(uint8_t* data);
+void create_supercap_task();
 
 #endif
+

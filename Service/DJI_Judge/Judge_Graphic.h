@@ -4,24 +4,16 @@
 #include "Judge_Data.h"
 #include "freertos_usr_lib.h"
 
-//发送数据长度
-typedef enum
-{
-	Graphic_Delete_Long = 2,
-	Graphic_Single_Long = 15,
-	Graphic_double_Long = 30,
-	Graphic_five_Long = 75,
-	Graphic_seven_Long = 105,
-	Graphic_character_Long = 45
-}Judge_Graphic_Data_Long_t;
+#define Judge_Assert_Fault_Handler() while(1)
 
 typedef enum
 {
-		GRAPHIC_SEVEN = 0x0104,
-		GRAPHIC_FIVE = 0x0103,
-		GRAPHIC_TWO = 0x0102,
-		GRAPHIC_ONE = 0x0101,
-		GRAPHIC_CHARACTER = 0x0110
+		GRAPHIC_CMDID_ZERO = 0x0100,
+		GRAPHIC_CMDID_ONE = 0x0101,
+		GRAPHIC_CMDID_TWO = 0x0102,
+		GRAPHIC_CMDID_FIVE = 0x0103,
+		GRAPHIC_CMDID_SEVEN = 0x0104,
+		GRAPHIC_CMDID_CHARACTER = 0x0110
 }Judge_Graphic_CmdID_t;
 
 //图形操作
@@ -84,20 +76,25 @@ typedef __packed struct
 	}graphic_union;
 }graphic_data_struct_t;
 
-typedef __packed struct
+typedef struct
 {
+		ListItem_t ListItem;
+		SemaphoreHandle_t Graphic_Obj_Mutex;
 		graphic_data_struct_t Graphic_Data;
 		uint8_t* Ext_Data;
 }Judge_Graphic_Obj_t;
 
 typedef struct
 {
-	QueueHandle_t Judge_Graphic_CommonObj_Queue;
-	QueueHandle_t Judge_Graphic_Character_Queue;
+//	QueueHandle_t Judge_Graphic_CommonObj_Queue;
+//	QueueHandle_t Judge_Graphic_Character_Queue;
+	ListEx_t Graphic_Obj_List;
 	uint32_t Judge_Obj_Counter;
+	SemaphoreHandle_t Graphic_List_Mutex;
 }DJI_Judge_Graphic_t;
 
 void Judge_Graphic_Init(void);
+void Judge_Graphic_Handler(void);
 void Judge_Graphic_Obj_Set_Color(Judge_Graphic_Obj_t* Obj,Judge_Graphic_Color_t Color);
 uint32_t Judge_Graphic_Obj_Get_Width(Judge_Graphic_Obj_t* Obj);
 uint32_t Judge_Graphic_Obj_Get_Height(Judge_Graphic_Obj_t* Obj);

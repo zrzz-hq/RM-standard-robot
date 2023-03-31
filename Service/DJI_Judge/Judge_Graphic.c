@@ -6,79 +6,94 @@ DJI_Judge_Graphic_t DJI_Judge_Graphic;
 #define JUDGE_GRAPHIC_TASK_PRIO 21
 TaskHandle_t JudgeGraphicTask_Handler;
 
-#define JUDGE_PTR_ASSERT(Ptr) if(!Ptr) return
-#define JUDGE_PTR_ASSERT_EX(Ptr,Val) if(!Ptr) return Val
 #define JUDGE_GRAPHIC_DATA_LEN 15
 #define JUDGE_GRAPHIC_CHARACTER_LEN 30
 
-#define Judge_Graphic_CommonObj_Opt_Apply(Obj) xQueueSend(DJI_Judge_Graphic.Judge_Graphic_CommonObj_Queue,&(Obj),portMAX_DELAY)
-#define Judge_Graphic_Character_Opt_Apply(Obj) xQueueSend(DJI_Judge_Graphic.Judge_Graphic_Character_Queue,&(Obj),portMAX_DELAY)
+#define Judge_Assert(Ptr) if(!(Ptr)) Judge_Assert_Fault_Handler()
+#define Judge_Graphic_Obj_Lock(Obj) xSemaphoreTake((Obj)->Graphic_Obj_Mutex,portMAX_DELAY)
+#define Judge_Graphic_Obj_Poll(Obj) xSemaphoreTake((Obj)->Graphic_Obj_Mutex,0)
+#define Judge_Graphic_Obj_Unlock(Obj)  			xSemaphoreGive((Obj)->Graphic_Obj_Mutex)
 
 /********基础操作函数**********/
 static Judge_Graphic_Obj_t* Judge_Graphic_Obj_Init()
 {
-		if(DJI_Judge_Graphic.Judge_Obj_Counter > 0xFFF)
-			return NULL;
-			
+		Judge_Assert(DJI_Judge_Graphic.Judge_Obj_Counter < 0xFFF);
+	
 		Judge_Graphic_Obj_t* Obj = pvPortMalloc(sizeof(Judge_Graphic_Obj_t));
-		JUDGE_PTR_ASSERT_EX(Obj,NULL);
+		Judge_Assert(Obj);
+		vListInitialiseItem((ListItem_t*)Obj);
+	
 		Obj->Graphic_Data.graphic_name = DJI_Judge_Graphic.Judge_Obj_Counter++;
+		//创建信号量，但不解锁，直到对象被真正发送出去后才解锁
+		Obj->Graphic_Obj_Mutex = xSemaphoreCreateBinary();
+		Judge_Assert(Obj->Graphic_Obj_Mutex);
+	
+		List_Insert_End(&DJI_Judge_Graphic.Graphic_Obj_List,(ListItem_t*)Obj,portMAX_DELAY);
 		return Obj;
 }
 
 void Judge_Graphic_Obj_Set_Color(Judge_Graphic_Obj_t* Obj,Judge_Graphic_Color_t Color)
 {
-		JUDGE_PTR_ASSERT(Obj);
+		Judge_Assert(Obj);
+		Judge_Graphic_Obj_Lock(Obj);
+	
 		Obj->Graphic_Data.color = Color;
 		Obj->Graphic_Data.operate_tpye = OPT_CHANGE;
-		Judge_Graphic_CommonObj_Opt_Apply(Obj);
+	
+		Judge_Graphic_Obj_Unlock(Obj);
 }
 
 uint32_t Judge_Graphic_Obj_Get_Width(Judge_Graphic_Obj_t* Obj)
 {
-		JUDGE_PTR_ASSERT_EX(Obj,0);
+		Judge_Assert(Obj);
+		Judge_Graphic_Obj_Lock(Obj);
+	
+		uint32_t W = 0;
 		if(Obj->Graphic_Data.graphic_tpye == ELLIPSE||Obj->Graphic_Data.graphic_tpye == ARC)
 		{
-				return Obj->Graphic_Data.graphic_union.graphic_data.end_x;
+				W = Obj->Graphic_Data.graphic_union.graphic_data.end_x;
 		}
 		else if(Obj->Graphic_Data.graphic_tpye == CIRCLE)
 		{
-				return Obj->Graphic_Data.graphic_union.graphic_data.radius;
+				W = Obj->Graphic_Data.graphic_union.graphic_data.radius;
 		}
 		else if(Obj->Graphic_Data.graphic_tpye == RECTANGLE||Obj->Graphic_Data.graphic_tpye == LINE)
 		{
-				return Obj->Graphic_Data.graphic_union.graphic_data.end_x - Obj->Graphic_Data.start_x;
+				W = Obj->Graphic_Data.graphic_union.graphic_data.end_x - Obj->Graphic_Data.start_x;
 		}
-		else
-		{
-				return 0;//todo
-		}
+		
+		Judge_Graphic_Obj_Unlock(Obj);
+		return W;
 }
 
 uint32_t Judge_Graphic_Obj_Get_Height(Judge_Graphic_Obj_t* Obj)
 {
-		JUDGE_PTR_ASSERT_EX(Obj,0);
+		Judge_Assert(Obj);
+		Judge_Graphic_Obj_Lock(Obj);
+	
+		uint32_t H = 0;
 		if(Obj->Graphic_Data.graphic_tpye == ELLIPSE||Obj->Graphic_Data.graphic_tpye == ARC)
 		{
-				return Obj->Graphic_Data.graphic_union.graphic_data.end_y;
+				H = Obj->Graphic_Data.graphic_union.graphic_data.end_y;
 		}
 		else if(Obj->Graphic_Data.graphic_tpye == CIRCLE)
 		{
-				return Obj->Graphic_Data.graphic_union.graphic_data.radius;
+				H = Obj->Graphic_Data.graphic_union.graphic_data.radius;
 		}
 		else if(Obj->Graphic_Data.graphic_tpye == RECTANGLE||Obj->Graphic_Data.graphic_tpye == LINE)
 		{
-				return Obj->Graphic_Data.graphic_union.graphic_data.end_y - Obj->Graphic_Data.start_y;
+				H = Obj->Graphic_Data.graphic_union.graphic_data.end_y - Obj->Graphic_Data.start_y;
 		}
-		else
-		{
-				return 0;//todo
-		}
+		
+		Judge_Graphic_Obj_Unlock(Obj);
+		return H;
 }
 
 void Judge_Graphic_Obj_Set_Width(Judge_Graphic_Obj_t* Obj,uint32_t W)
 {
-		JUDGE_PTR_ASSERT(Obj);
+		Judge_Assert(Obj);
+		Judge_Graphic_Obj_Lock(Obj);
+		
 		if(Obj->Graphic_Data.graphic_tpye == ELLIPSE||Obj->Graphic_Data.graphic_tpye == ARC)
 		{
 				uint32_t Ra = Obj->Graphic_Data.graphic_union.graphic_data.end_x;
@@ -97,17 +112,16 @@ void Judge_Graphic_Obj_Set_Width(Judge_Graphic_Obj_t* Obj,uint32_t W)
 		{
 				Obj->Graphic_Data.graphic_union.graphic_data.end_x = Obj->Graphic_Data.start_x + W;
 		}
-		else
-		{
-				//todo
-		}
+		
 		Obj->Graphic_Data.operate_tpye = OPT_CHANGE;
-		Judge_Graphic_CommonObj_Opt_Apply(Obj);
+		Judge_Graphic_Obj_Unlock(Obj);
 }
 
 void Judge_Graphic_Obj_Set_Height(Judge_Graphic_Obj_t* Obj,uint32_t H)
 {
-		JUDGE_PTR_ASSERT(Obj);
+		Judge_Assert(Obj);
+		Judge_Graphic_Obj_Lock(Obj);
+		
 		if(Obj->Graphic_Data.graphic_tpye == ELLIPSE||Obj->Graphic_Data.graphic_tpye == ARC)
 		{
 				uint32_t Rb = Obj->Graphic_Data.graphic_union.graphic_data.end_y;
@@ -126,12 +140,9 @@ void Judge_Graphic_Obj_Set_Height(Judge_Graphic_Obj_t* Obj,uint32_t H)
 		{
 				Obj->Graphic_Data.graphic_union.graphic_data.end_y = Obj->Graphic_Data.start_y + H;
 		}
-		else
-		{
-				//todo
-		}
+		
 		Obj->Graphic_Data.operate_tpye = OPT_CHANGE;
-		Judge_Graphic_CommonObj_Opt_Apply(Obj);
+		Judge_Graphic_Obj_Unlock(Obj);
 }
 
 void Judge_Graphic_Obj_Set_Size(Judge_Graphic_Obj_t* Obj,uint32_t W,uint32_t H)
@@ -142,46 +153,60 @@ void Judge_Graphic_Obj_Set_Size(Judge_Graphic_Obj_t* Obj,uint32_t W,uint32_t H)
 
 uint32_t Judge_Graphic_Obj_Get_X(Judge_Graphic_Obj_t* Obj)
 {
-		JUDGE_PTR_ASSERT_EX(Obj,0);
+		Judge_Assert(Obj);
+		Judge_Graphic_Obj_Lock(Obj);
+	
+		uint32_t X = 0;
 		if(Obj->Graphic_Data.graphic_tpye == ELLIPSE||Obj->Graphic_Data.graphic_tpye == ARC)
 		{
 				uint32_t Ra = Obj->Graphic_Data.graphic_union.graphic_data.end_x;
-				return Obj->Graphic_Data.start_x - Ra/2;
+				X = Obj->Graphic_Data.start_x - Ra/2;
 		}
 		else if(Obj->Graphic_Data.graphic_tpye == CIRCLE)
 		{
 				uint32_t R = Obj->Graphic_Data.graphic_union.graphic_data.radius;
-				return Obj->Graphic_Data.start_x - R/2;
+				X = Obj->Graphic_Data.start_x - R/2;
 		}
 		else
 		{
-				return Obj->Graphic_Data.start_x;
+				X = Obj->Graphic_Data.start_x;
 		}
+		
+		Judge_Graphic_Obj_Unlock(Obj);
+		return X;
 }
 
 uint32_t Judge_Graphic_Obj_Get_Y(Judge_Graphic_Obj_t* Obj)
 {
-		JUDGE_PTR_ASSERT_EX(Obj,0);
+		Judge_Assert(Obj);
+		Judge_Graphic_Obj_Lock(Obj);
+	
+		uint32_t Y = 0;
 		if(Obj->Graphic_Data.graphic_tpye == ELLIPSE||Obj->Graphic_Data.graphic_tpye == ARC)
 		{
 				uint32_t Rb = Obj->Graphic_Data.graphic_union.graphic_data.end_y;
-				return Obj->Graphic_Data.start_y - Rb/2;
+				Y = Obj->Graphic_Data.start_y - Rb/2;
 		}
 		else if(Obj->Graphic_Data.graphic_tpye == CIRCLE)
 		{
 				uint32_t R = Obj->Graphic_Data.graphic_union.graphic_data.radius;
-				return Obj->Graphic_Data.start_y - R/2;
+				Y = Obj->Graphic_Data.start_y - R/2;
 		}
 		else
 		{
-				return Obj->Graphic_Data.start_y;
+				Y = Obj->Graphic_Data.start_y;
 		}
+		
+		Judge_Graphic_Obj_Unlock(Obj);
+		return Y;
 }
 
 
 void Judge_Graphic_Obj_Set_X(Judge_Graphic_Obj_t* Obj,uint32_t X)
 {
-		JUDGE_PTR_ASSERT(Obj);
+		Judge_Assert(Obj);
+		Judge_Graphic_Obj_Lock(Obj);
+		
 		if(Obj->Graphic_Data.graphic_tpye == ELLIPSE||Obj->Graphic_Data.graphic_tpye == ARC)
 		{
 				uint32_t Ra = Obj->Graphic_Data.graphic_union.graphic_data.end_x;
@@ -199,12 +224,14 @@ void Judge_Graphic_Obj_Set_X(Judge_Graphic_Obj_t* Obj,uint32_t X)
 				Obj->Graphic_Data.graphic_union.graphic_data.end_x = X+W;
 		}
 		Obj->Graphic_Data.operate_tpye = OPT_CHANGE;
-		Judge_Graphic_CommonObj_Opt_Apply(Obj);
+		Judge_Graphic_Obj_Unlock(Obj);
 }
 
 void Judge_Graphic_Obj_Set_Y(Judge_Graphic_Obj_t* Obj,uint32_t Y)
 {
-		JUDGE_PTR_ASSERT(Obj);
+		Judge_Assert(Obj);
+		Judge_Graphic_Obj_Lock(Obj);
+		
 		if(Obj->Graphic_Data.graphic_tpye == ELLIPSE||Obj->Graphic_Data.graphic_tpye == ARC)
 		{
 				uint32_t Ra = Obj->Graphic_Data.graphic_union.graphic_data.end_y;
@@ -221,8 +248,9 @@ void Judge_Graphic_Obj_Set_Y(Judge_Graphic_Obj_t* Obj,uint32_t Y)
 				Obj->Graphic_Data.start_y = Y;
 				Obj->Graphic_Data.graphic_union.graphic_data.end_y = Y+H;
 		}
+		
 		Obj->Graphic_Data.operate_tpye = OPT_CHANGE;
-		Judge_Graphic_CommonObj_Opt_Apply(Obj);
+		Judge_Graphic_Obj_Unlock(Obj);
 }
 
 void Judge_Graphic_Obj_Set_Pos(Judge_Graphic_Obj_t* Obj,uint32_t X,uint32_t Y)
@@ -233,43 +261,49 @@ void Judge_Graphic_Obj_Set_Pos(Judge_Graphic_Obj_t* Obj,uint32_t X,uint32_t Y)
 
 uint32_t Judge_Graphic_Obj_Get_Center_X(Judge_Graphic_Obj_t* Obj)
 {
-		JUDGE_PTR_ASSERT_EX(Obj,0);
+		Judge_Assert(Obj);
+		Judge_Graphic_Obj_Lock(Obj);
+		uint32_t X = 0;
+		
 		if(Obj->Graphic_Data.graphic_tpye == RECTANGLE||Obj->Graphic_Data.graphic_tpye == LINE)
 		{
-				return (Obj->Graphic_Data.start_x+Obj->Graphic_Data.graphic_union.graphic_data.end_x)/2;
+				X = (Obj->Graphic_Data.start_x+Obj->Graphic_Data.graphic_union.graphic_data.end_x)/2;
 		}
 		else if(Obj->Graphic_Data.graphic_tpye == ELLIPSE||Obj->Graphic_Data.graphic_tpye == ARC||
 						Obj->Graphic_Data.graphic_tpye == CIRCLE)
 		{
-				return Obj->Graphic_Data.start_x;
+				X = Obj->Graphic_Data.start_x;
 		}
-		else
-		{
-				return 0;//todo
-		}
+		
+		Judge_Graphic_Obj_Unlock(Obj);
+		return X;
 }
 
 uint32_t Judge_Graphic_Obj_Get_Center_Y(Judge_Graphic_Obj_t* Obj)
 {
-		JUDGE_PTR_ASSERT_EX(Obj,0);
+		Judge_Assert(Obj);
+		Judge_Graphic_Obj_Lock(Obj);
+		uint32_t Y;
+	
 		if(Obj->Graphic_Data.graphic_tpye == RECTANGLE||Obj->Graphic_Data.graphic_tpye == LINE)
 		{
-				return (Obj->Graphic_Data.start_y+Obj->Graphic_Data.graphic_union.graphic_data.end_y)/2;
+				Y = (Obj->Graphic_Data.start_y+Obj->Graphic_Data.graphic_union.graphic_data.end_y)/2;
 		}
 		else if(Obj->Graphic_Data.graphic_tpye == ELLIPSE||Obj->Graphic_Data.graphic_tpye == ARC||
 						Obj->Graphic_Data.graphic_tpye == CIRCLE)
 		{
-				return Obj->Graphic_Data.start_y;
+				Y = Obj->Graphic_Data.start_y;
 		}
-		else
-		{
-				return 0;
-		}
+		
+		Judge_Graphic_Obj_Unlock(Obj);
+		return Y;
 }
 
 void Judge_Graphic_Obj_Set_Center_X(Judge_Graphic_Obj_t* Obj,uint32_t Cx)
 {
-		JUDGE_PTR_ASSERT(Obj);
+		Judge_Assert(Obj);
+		Judge_Graphic_Obj_Lock(Obj);
+		
 		if(Obj->Graphic_Data.graphic_tpye == RECTANGLE||Obj->Graphic_Data.graphic_tpye == LINE)
 		{
 				uint32_t W = Obj->Graphic_Data.graphic_union.graphic_data.end_x - Obj->Graphic_Data.start_x;
@@ -281,17 +315,16 @@ void Judge_Graphic_Obj_Set_Center_X(Judge_Graphic_Obj_t* Obj,uint32_t Cx)
 		{
 				Obj->Graphic_Data.start_x = Cx;
 		}
-		else
-		{
-				//todo
-		}
+		
 		Obj->Graphic_Data.operate_tpye = OPT_CHANGE;
-		Judge_Graphic_CommonObj_Opt_Apply(Obj);
+		Judge_Graphic_Obj_Unlock(Obj);
 }
 
 void Judge_Graphic_Obj_Set_Center_Y(Judge_Graphic_Obj_t* Obj,uint32_t Cy)
 {
-		JUDGE_PTR_ASSERT(Obj);
+		Judge_Assert(Obj);
+		Judge_Graphic_Obj_Lock(Obj);
+		
 		if(Obj->Graphic_Data.graphic_tpye == RECTANGLE||Obj->Graphic_Data.graphic_tpye == LINE)
 		{
 				uint32_t H = Obj->Graphic_Data.graphic_union.graphic_data.end_y - Obj->Graphic_Data.start_y;
@@ -303,12 +336,9 @@ void Judge_Graphic_Obj_Set_Center_Y(Judge_Graphic_Obj_t* Obj,uint32_t Cy)
 		{
 				Obj->Graphic_Data.start_y = Cy;
 		}
-		else
-		{
-				//todo
-		}
+		
 		Obj->Graphic_Data.operate_tpye = OPT_CHANGE;
-		Judge_Graphic_CommonObj_Opt_Apply(Obj);
+		Judge_Graphic_Obj_Unlock(Obj);
 }
 
 void Judge_Graphic_Obj_Set_Center_Pos(Judge_Graphic_Obj_t* Obj,uint32_t Cx,uint32_t Cy)
@@ -317,9 +347,57 @@ void Judge_Graphic_Obj_Set_Center_Pos(Judge_Graphic_Obj_t* Obj,uint32_t Cx,uint3
 		Judge_Graphic_Obj_Set_Center_Y(Obj,Cy);
 }
 
+uint32_t Judge_Graphic_Obj_Get_Radius_A(Judge_Graphic_Obj_t* Obj)
+{
+		Judge_Assert(Obj);
+		Judge_Graphic_Obj_Lock(Obj);
+	
+		uint32_t Ra = 0;
+		if(Obj->Graphic_Data.graphic_tpye == ELLIPSE||Obj->Graphic_Data.graphic_tpye == ARC)
+		{
+				Ra = Obj->Graphic_Data.graphic_union.graphic_data.end_x;
+		}
+		else if(Obj->Graphic_Data.graphic_tpye == CIRCLE)
+		{
+				Ra = Obj->Graphic_Data.graphic_union.graphic_data.radius;
+		}
+		else if(Obj->Graphic_Data.graphic_tpye == RECTANGLE||Obj->Graphic_Data.graphic_tpye == LINE)
+		{
+				Ra = (Obj->Graphic_Data.graphic_union.graphic_data.end_x-Obj->Graphic_Data.start_x)/2;
+		}
+		
+		Judge_Graphic_Obj_Unlock(Obj);
+		return Ra;
+}
+
+uint32_t Judge_Graphic_Obj_Get_Radius_B(Judge_Graphic_Obj_t* Obj)
+{
+		Judge_Assert(Obj);
+		Judge_Graphic_Obj_Lock(Obj);
+		
+		uint32_t Rb;
+		if(Obj->Graphic_Data.graphic_tpye == ELLIPSE||Obj->Graphic_Data.graphic_tpye == ARC)
+		{
+				Rb = Obj->Graphic_Data.graphic_union.graphic_data.end_y;
+		}
+		else if(Obj->Graphic_Data.graphic_tpye == CIRCLE)
+		{
+				Rb = Obj->Graphic_Data.graphic_union.graphic_data.radius;
+		}
+		else if(Obj->Graphic_Data.graphic_tpye == RECTANGLE||Obj->Graphic_Data.graphic_tpye == LINE)
+		{
+				Rb = (Obj->Graphic_Data.graphic_union.graphic_data.end_y-Obj->Graphic_Data.start_y)/2;
+		}
+		
+		Judge_Graphic_Obj_Unlock(Obj);
+		return Rb;
+}
+
 void Judge_Graphic_Obj_Set_Radius_A(Judge_Graphic_Obj_t* Obj,uint32_t Ra)
 {
-		JUDGE_PTR_ASSERT(Obj);
+		Judge_Assert(Obj);
+		Judge_Graphic_Obj_Lock(Obj);
+	
 		if(Obj->Graphic_Data.graphic_tpye == ELLIPSE||Obj->Graphic_Data.graphic_tpye == ARC)
 		{
 				Obj->Graphic_Data.graphic_union.graphic_data.end_x = Ra;
@@ -335,24 +413,23 @@ void Judge_Graphic_Obj_Set_Radius_A(Judge_Graphic_Obj_t* Obj,uint32_t Ra)
 				Obj->Graphic_Data.start_x = Cx - Ra/2;
 				Obj->Graphic_Data.graphic_union.graphic_data.end_x = Cx + Ra/2;
 		}
-		else
-		{
-			 //todo
-		}
+		
 		Obj->Graphic_Data.operate_tpye = OPT_CHANGE;
-		Judge_Graphic_CommonObj_Opt_Apply(Obj);
+		Judge_Graphic_Obj_Unlock(Obj);
 }
 
 void Judge_Graphic_Obj_Set_Radius_B(Judge_Graphic_Obj_t* Obj,uint32_t Rb)
 {
-		JUDGE_PTR_ASSERT(Obj);
+		Judge_Assert(Obj);
+		Judge_Graphic_Obj_Lock(Obj);
+		
 		if(Obj->Graphic_Data.graphic_tpye == ELLIPSE||Obj->Graphic_Data.graphic_tpye == ARC)
 		{
 				Obj->Graphic_Data.graphic_union.graphic_data.end_y = Rb;
 		}
 		else if(Obj->Graphic_Data.graphic_tpye == CIRCLE)
 		{
-			 Obj->Graphic_Data.graphic_union.graphic_data.radius = Rb;
+				Obj->Graphic_Data.graphic_union.graphic_data.radius = Rb;
 		}
 		else if(Obj->Graphic_Data.graphic_tpye == RECTANGLE||Obj->Graphic_Data.graphic_tpye == LINE)
 		{
@@ -360,39 +437,101 @@ void Judge_Graphic_Obj_Set_Radius_B(Judge_Graphic_Obj_t* Obj,uint32_t Rb)
 				Obj->Graphic_Data.start_x = Cy - Rb/2;
 				Obj->Graphic_Data.graphic_union.graphic_data.end_x = Cy + Rb/2;
 		}
-		else
-		{
-			 //todo
-		}
+		
 		Obj->Graphic_Data.operate_tpye = OPT_CHANGE;
-		Judge_Graphic_CommonObj_Opt_Apply(Obj);
+		Judge_Graphic_Obj_Unlock(Obj);
 }
+
+uint32_t Judge_Graphic_Obj_Get_Start_Angle(Judge_Graphic_Obj_t* Obj,uint32_t Start_Angle)
+{
+		Judge_Assert(Obj);
+		Judge_Graphic_Obj_Lock(Obj);
+		
+		uint32_t As = 0;
+		if(Obj->Graphic_Data.graphic_tpye == ARC)
+		{
+				As = Obj->Graphic_Data.start_angle;
+		}
+		
+		Judge_Graphic_Obj_Unlock(Obj);
+		return As;
+}
+
+uint32_t Judge_Graphic_Obj_Get_End_Angle(Judge_Graphic_Obj_t* Obj,uint32_t End_Angle)
+{
+		Judge_Assert(Obj);
+		Judge_Graphic_Obj_Lock(Obj);
+	
+		uint32_t Ae = 0;
+		if(Obj->Graphic_Data.graphic_tpye == ARC)
+		{
+				Ae = Obj->Graphic_Data.end_angle;
+		}
+		
+		Judge_Graphic_Obj_Unlock(Obj);
+		return Ae;
+} 
+
+
+void Judge_Graphic_Obj_Set_Start_Angle(Judge_Graphic_Obj_t* Obj,uint32_t Start_Angle)
+{
+		Judge_Assert(Obj);
+		if(Obj->Graphic_Data.graphic_tpye == ARC)
+		{
+				Judge_Graphic_Obj_Lock(Obj);
+			
+				Obj->Graphic_Data.start_angle = Start_Angle;
+			
+				Judge_Graphic_Obj_Unlock(Obj);
+		}
+}
+
+void Judge_Graphic_Obj_Set_End_Angle(Judge_Graphic_Obj_t* Obj,uint32_t End_Angle)
+{
+		Judge_Assert(Obj);
+		if(Obj->Graphic_Data.graphic_tpye == ARC)
+		{
+				Judge_Graphic_Obj_Lock(Obj);
+			
+				Obj->Graphic_Data.end_angle = End_Angle;
+			
+				Judge_Graphic_Obj_Unlock(Obj);
+		}
+} 
 
 void Judge_Graphic_Obj_Set_Radius(Judge_Graphic_Obj_t* Obj,uint32_t R)
 {
+		Judge_Assert(Obj);
+	
 		Judge_Graphic_Obj_Set_Radius_B(Obj,R);
 		Judge_Graphic_Obj_Set_Radius_A(Obj,R);
+	
 }
 
 void Judge_Graphic_Obj_Set_Line_Width(Judge_Graphic_Obj_t* Obj,uint32_t W)
 {
+		Judge_Assert(Obj);
+		Judge_Graphic_Obj_Lock(Obj);
+	
 		Obj->Graphic_Data.width = W;
 		Obj->Graphic_Data.operate_tpye = OPT_CHANGE;
-		Judge_Graphic_CommonObj_Opt_Apply(Obj);
+	
+		Judge_Graphic_Obj_Unlock(Obj);
 }
 
 void Judge_Graphic_Obj_Del(Judge_Graphic_Obj_t* Obj)
 {
-		JUDGE_PTR_ASSERT(Obj);
+		Judge_Assert(Obj);
+		//锁定图形对象，直到对象被删除
+		Judge_Graphic_Obj_Lock(Obj);
+		
 		Obj->Graphic_Data.operate_tpye = OPT_DELETE;
-		Judge_Graphic_CommonObj_Opt_Apply(Obj);
 }
 /********图形创建函数**********/
 
 Judge_Graphic_Obj_t* Judge_Graphic_Ellipse_Create(uint32_t Cx,uint32_t Cy,uint32_t Ra,uint32_t Rb,uint32_t W)
 {
 		Judge_Graphic_Obj_t* Ellipse = Judge_Graphic_Obj_Init();
-		JUDGE_PTR_ASSERT_EX(Ellipse,NULL);
 		Ellipse->Graphic_Data.graphic_tpye = ELLIPSE;
 		Ellipse->Graphic_Data.start_x = Cx - Ra/2;
 		Ellipse->Graphic_Data.start_y = Cy - Ra/2;
@@ -400,23 +539,19 @@ Judge_Graphic_Obj_t* Judge_Graphic_Ellipse_Create(uint32_t Cx,uint32_t Cy,uint32
 		Ellipse->Graphic_Data.graphic_union.graphic_data.end_y = (uint32_t)Cy + Rb/2;	
 		Ellipse->Graphic_Data.width = W;
 		Ellipse->Graphic_Data.operate_tpye = OPT_ADD;
-		Judge_Graphic_CommonObj_Opt_Apply(Ellipse);
 		return  Ellipse;
 }
 
 Judge_Graphic_Obj_t* Judge_Graphic_Circle_Create(uint32_t Cx,uint32_t Cy,uint32_t R,uint32_t W)
 {
 		Judge_Graphic_Obj_t* Circle = Judge_Graphic_Ellipse_Create(Cx,Cy,R,R,W);
-		JUDGE_PTR_ASSERT_EX(Circle,NULL);
 		Circle->Graphic_Data.graphic_tpye = CIRCLE;
-		Judge_Graphic_CommonObj_Opt_Apply(Circle);
 		return Circle;
 }
 
 Judge_Graphic_Obj_t* Judge_Graphic_Line_Create(uint32_t X1,uint32_t Y1,uint32_t X2,uint32_t Y2,uint32_t W)
 {
 		Judge_Graphic_Obj_t* Line = Judge_Graphic_Obj_Init();
-		JUDGE_PTR_ASSERT_EX(Line,NULL);
 		Line->Graphic_Data.graphic_tpye = LINE;
 		Line->Graphic_Data.start_x = X1;
 		Line->Graphic_Data.start_y = Y1;
@@ -424,14 +559,12 @@ Judge_Graphic_Obj_t* Judge_Graphic_Line_Create(uint32_t X1,uint32_t Y1,uint32_t 
 		Line->Graphic_Data.graphic_union.graphic_data.end_y = Y2;	
 		Line->Graphic_Data.width = W;
 		Line->Graphic_Data.operate_tpye = OPT_ADD;
-		Judge_Graphic_CommonObj_Opt_Apply(Line);
 		return Line;
 }
 
 Judge_Graphic_Obj_t* Judge_Graphic_Rect_Create(uint32_t X1,uint32_t Y1,uint32_t X2,uint32_t Y2,uint32_t W)
 {
-		Judge_Graphic_Obj_t* Rect = Judge_Graphic_Obj_Init();
-		JUDGE_PTR_ASSERT_EX(Rect,NULL);
+		Judge_Graphic_Obj_t* Rect = Judge_Graphic_Obj_Init();\
 		Rect->Graphic_Data.graphic_tpye = RECTANGLE;
 		Rect->Graphic_Data.start_x = X1;
 		Rect->Graphic_Data.start_y = Y1;
@@ -439,14 +572,12 @@ Judge_Graphic_Obj_t* Judge_Graphic_Rect_Create(uint32_t X1,uint32_t Y1,uint32_t 
 		Rect->Graphic_Data.graphic_union.graphic_data.end_y = Y2;	
 		Rect->Graphic_Data.width = W;
 		Rect->Graphic_Data.operate_tpye = OPT_ADD;
-		Judge_Graphic_CommonObj_Opt_Apply(Rect);
 		return Rect;
 }
 
 Judge_Graphic_Obj_t* Judge_Graphic_Arc_Create(uint32_t A1,uint32_t A2,uint32_t Cx, uint32_t Cy,uint32_t R,uint32_t W)
 {
 		Judge_Graphic_Obj_t* Arc = Judge_Graphic_Obj_Init();
-		JUDGE_PTR_ASSERT_EX(Arc,NULL);
 		Arc->Graphic_Data.graphic_tpye = ARC;
 		Arc->Graphic_Data.start_angle = A1;
 		Arc->Graphic_Data.end_angle = A2;
@@ -456,14 +587,12 @@ Judge_Graphic_Obj_t* Judge_Graphic_Arc_Create(uint32_t A1,uint32_t A2,uint32_t C
 		Arc->Graphic_Data.graphic_union.graphic_data.end_y = Cy + R/2;
 		Arc->Graphic_Data.width = W;
 		Arc->Graphic_Data.operate_tpye = OPT_ADD;
-		Judge_Graphic_CommonObj_Opt_Apply(Arc);
 		return Arc;
 }
 
 Judge_Graphic_Obj_t* Judge_Graphic_Float_Create(uint32_t X,uint32_t Y,uint32_t Font_Size,float Val)
 {
 		Judge_Graphic_Obj_t* Float = Judge_Graphic_Obj_Init();
-		JUDGE_PTR_ASSERT_EX(Float,NULL);
 		Float->Graphic_Data.graphic_tpye = FLOAT;
 		Float->Graphic_Data.start_x = X;
 		Float->Graphic_Data.start_y = Y;
@@ -471,36 +600,30 @@ Judge_Graphic_Obj_t* Judge_Graphic_Float_Create(uint32_t X,uint32_t Y,uint32_t F
 		Float->Graphic_Data.end_angle = 3;
 		Float->Graphic_Data.width = Font_Size/10;
 		Float->Graphic_Data.operate_tpye = OPT_ADD;
-		Judge_Graphic_CommonObj_Opt_Apply(Float);
 		return Float;
 }
 
 Judge_Graphic_Obj_t* Judge_Graphic_Integer_Create(uint32_t X,uint32_t Y,uint32_t Font_Size,int32_t Val)
 {
 		Judge_Graphic_Obj_t* Int = Judge_Graphic_Obj_Init();
-		JUDGE_PTR_ASSERT_EX(Int,NULL);
 		Int->Graphic_Data.graphic_tpye = INTEGER;
 		Int->Graphic_Data.start_x = X;
 		Int->Graphic_Data.start_y = Y;
 		Int->Graphic_Data.start_angle = Font_Size;
 		Int->Graphic_Data.width = Font_Size/10;
 		Int->Graphic_Data.operate_tpye = OPT_ADD;
-		Judge_Graphic_CommonObj_Opt_Apply(Int);
 		return Int;
 }
 
 Judge_Graphic_Obj_t* Judge_Graphic_Character_Create(uint32_t X,uint32_t Y,uint32_t Font_Size,char* Str)
 {
+		Judge_Assert(Str);
 		uint32_t Character_Len = strlen(Str);
 		uint8_t* Character_Buff = pvPortMalloc(Character_Len);
-		JUDGE_PTR_ASSERT_EX(Str,NULL);
+		Judge_Assert(Character_Buff);
 	
 		Judge_Graphic_Obj_t* Character = Judge_Graphic_Obj_Init();
-		if(!Character)
-		{
-				vPortFree(Character_Buff);
-				return NULL;
-		}
+		
 		Character->Graphic_Data.graphic_tpye = CHARACTER;
 		Character->Graphic_Data.start_x = X;
 		Character->Graphic_Data.start_y = Y;
@@ -510,13 +633,12 @@ Judge_Graphic_Obj_t* Judge_Graphic_Character_Create(uint32_t X,uint32_t Y,uint32
 		memcpy(Character_Buff,Str,Character_Len);
 		Character->Ext_Data = Character_Buff;
 		Character->Graphic_Data.operate_tpye = OPT_ADD;
-		Judge_Graphic_Character_Opt_Apply(Character);
 		return Character;
 }
 
 static void Judge_Graphic_Obj_Del_Check(Judge_Graphic_Obj_t* Obj)
 {
-		JUDGE_PTR_ASSERT(Obj);
+		Judge_Assert(Obj);
 		if(Obj->Graphic_Data.operate_tpye == OPT_DELETE)
 		{
 			if(Obj->Ext_Data)
@@ -529,96 +651,179 @@ static void Judge_Graphic_Obj_Del_Check(Judge_Graphic_Obj_t* Obj)
 		}
 }
 
-static uint8_t Judge_Graphic_CommonObj_Send()
-{
-		uint32_t Items_In_Queue = uxQueueMessagesWaiting(DJI_Judge_Graphic.Judge_Graphic_CommonObj_Queue);
-				
-		uint32_t Items_To_Send = 0;
-		uint16_t CmdID;
-		if(Items_In_Queue>=7)
-		{
-				Items_To_Send = 7;
-				CmdID = GRAPHIC_SEVEN;
-		}
-		else if(Items_In_Queue>=5)
-		{
-				Items_To_Send = 5;
-				CmdID = GRAPHIC_FIVE;
-		}
-		else if(Items_In_Queue>=2)
-		{
-				Items_To_Send = 2;
-				CmdID = GRAPHIC_TWO;
-		}
-		else if(Items_In_Queue>=1)
-		{
-				Items_To_Send = 1;
-				CmdID = GRAPHIC_ONE;
-		}
-		
-		if(Items_To_Send>0)
-		{
-			uint8_t* Data = pvPortMalloc(Items_To_Send*JUDGE_GRAPHIC_DATA_LEN);
-			uint8_t* Ptr = Data;
-			
-			for(uint8_t i = 1; i <= Items_To_Send; i++)
-			{
-					Judge_Graphic_Obj_t* Obj;
-					xQueueReceive(DJI_Judge_Graphic.Judge_Graphic_CommonObj_Queue,&Obj,portMAX_DELAY);
-					memcpy(Ptr,Obj,JUDGE_GRAPHIC_DATA_LEN);
-					Judge_Graphic_Obj_Del_Check(Obj);
-					Ptr += JUDGE_GRAPHIC_DATA_LEN;
-			}
-			Judge_Student_Data_Send(Data,Items_To_Send*JUDGE_GRAPHIC_DATA_LEN,CmdID,Target_Client);
-			vPortFree(Data);
-			return 1;
-		}	
-		return 0;
-}
-
-static uint8_t Judge_Graphic_Character_Send()
-{
-		uint32_t Items_In_Queue = uxQueueMessagesWaiting(DJI_Judge_Graphic.Judge_Graphic_Character_Queue);
-	
-		if(Items_In_Queue>0)
-		{
-				uint8_t* Data = pvPortMalloc(JUDGE_GRAPHIC_DATA_LEN+JUDGE_GRAPHIC_CHARACTER_LEN);
-				Judge_Graphic_Obj_t* Obj;
-				xQueueReceive(DJI_Judge_Graphic.Judge_Graphic_Character_Queue,&Obj,portMAX_DELAY);
-				memcpy(Data,Obj,JUDGE_GRAPHIC_DATA_LEN);
-				memcpy(Data+JUDGE_GRAPHIC_DATA_LEN,Obj->Ext_Data,strlen((char*)(Obj->Ext_Data)));
-				Judge_Graphic_Obj_Del_Check(Obj);
-				uint16_t CmdID = GRAPHIC_CHARACTER;
-				Judge_Student_Data_Send(Data,JUDGE_GRAPHIC_DATA_LEN+JUDGE_GRAPHIC_CHARACTER_LEN,CmdID,Target_Client);
-				vPortFree(Data);
-				return 1;
-		}
-		return 0;
-}
-
-void Judge_Graphic_Task(void *pvParameters)
-{
-		while(1)
-		{
-				//优先发送图形
-				if(!Judge_Graphic_CommonObj_Send())
-				{
-					 Judge_Graphic_Character_Send();
-				}
-				vTaskDelay(100);
-		}
-}
 
 void Judge_Graphic_Init()
 {
-		 Judge_Data_Init();
-		 DJI_Judge_Graphic.Judge_Graphic_CommonObj_Queue= xQueueCreate(10,sizeof(Judge_Graphic_Obj_t*));
-		 DJI_Judge_Graphic.Judge_Graphic_Character_Queue= xQueueCreate(10,sizeof(Judge_Graphic_Obj_t*));
-		 DJI_Judge_Graphic.Judge_Obj_Counter = 1;
-		 xTaskCreate((TaskFunction_t)Judge_Graphic_Task,          //任务函数
-                (const char *)"Judge_Graphic_Task",          //任务名称
-                (uint16_t)JUDGE_GRAPHIC_STK_SIZE,            //任务堆栈大小
-                (void *)NULL,                       //传递给任务函数的参数
-                (UBaseType_t)JUDGE_GRAPHIC_TASK_PRIO,        //任务优先级
-                (TaskHandle_t *)&JudgeGraphicTask_Handler); //任务句柄
+		DJI_Judge_Graphic.Judge_Obj_Counter = 1;
+		List_Init(&DJI_Judge_Graphic.Graphic_Obj_List);
+}
+
+typedef __packed struct
+{
+		Judge_Graphic_Obj_t* Character_To_Send;
+		Judge_Graphic_Obj_t* CommonObj_To_Send[7];
+		uint8_t Num_Of_Character_To_Send;
+		uint8_t Num_Of_CommonObj_To_Send;
+		
+}Judge_Graphic_Obj_To_Send_t;
+
+static void Judge_Graphic_Obj_Prepare_To_Send(Judge_Graphic_Obj_t* Obj,Judge_Graphic_Obj_To_Send_t* Graphic_Obj_To_Send)
+{
+		if(Obj->Graphic_Data.graphic_tpye==CHARACTER&&Graphic_Obj_To_Send->Num_Of_Character_To_Send==0)
+		{
+				Graphic_Obj_To_Send->Character_To_Send = Obj;
+				Graphic_Obj_To_Send->Num_Of_Character_To_Send = 1;
+		}
+		else if(Obj->Graphic_Data.graphic_tpye!=CHARACTER&&Graphic_Obj_To_Send->Num_Of_CommonObj_To_Send<7)
+		{
+				Graphic_Obj_To_Send->CommonObj_To_Send[Graphic_Obj_To_Send->Num_Of_CommonObj_To_Send++]=Obj;
+		}
+}
+
+int8_t Judge_Graphic_Obj_Iterator(ListItem_t* ListItem,void* User_Data1,void* User_Data2)
+{
+		Judge_Graphic_Obj_t* Obj = (Judge_Graphic_Obj_t*)(ListItem);
+		Judge_Graphic_Obj_To_Send_t* Graphic_Obj_To_Send = (Judge_Graphic_Obj_To_Send_t*)User_Data1;
+		//锁住图形对象
+		//Judge_Graphic_Obj_Lock(Obj);
+		//判断图形对象是否被锁定
+		if(Judge_Graphic_Obj_Poll(Obj)==pdFALSE)
+		{
+				//如果被锁定，判断图形操作是否为添加或者删除
+				if(Obj->Graphic_Data.operate_tpye==OPT_ADD)
+				{
+						Judge_Graphic_Obj_Prepare_To_Send(Obj,Graphic_Obj_To_Send);
+				}
+				else if(Obj->Graphic_Data.operate_tpye==OPT_DELETE)
+				{
+						Judge_Graphic_Obj_Prepare_To_Send(Obj,Graphic_Obj_To_Send);
+				}
+				else
+				{
+						//锁定图形对象，如果不是空操作，就不会解锁
+						Judge_Graphic_Obj_Lock(Obj);
+						if(Obj->Graphic_Data.graphic_tpye==OPT_CHANGE)
+						{
+								Judge_Graphic_Obj_Prepare_To_Send(Obj,Graphic_Obj_To_Send);
+						}
+						else
+								Judge_Graphic_Obj_Unlock(Obj);
+				}
+		}
+		
+		//如果两个发送缓冲区都满了，那么停止遍历，剩下的下次遍历
+		if(Graphic_Obj_To_Send->Num_Of_Character_To_Send==1&&Graphic_Obj_To_Send->Num_Of_CommonObj_To_Send==7)
+			return 0;
+		return 1;
+}
+
+static void Judge_Graphic_Obj_Del_Asyn(Judge_Graphic_Obj_t* Judge_Graphic_Obj)
+{
+		//先把对象移出链表
+		List_Remove(&DJI_Judge_Graphic.Graphic_Obj_List,(ListItem_t*)Judge_Graphic_Obj,portMAX_DELAY);
+		//删除互斥量
+		vSemaphoreDelete(Judge_Graphic_Obj->Graphic_Obj_Mutex);
+		//释放字符串占用的内存，如果存在的话
+		if(Judge_Graphic_Obj->Ext_Data)
+				vPortFree(Judge_Graphic_Obj->Ext_Data);
+		//释放对象占用的内存
+		vPortFree(Judge_Graphic_Obj);
+}
+
+
+static void Judge_Graphic_Obj_Send(Judge_Graphic_Obj_To_Send_t* Graphic_Obj_To_Send)
+{
+		if(Graphic_Obj_To_Send->Num_Of_Character_To_Send)
+		{
+				uint8_t* Send_Buff = pvPortMalloc(JUDGE_GRAPHIC_DATA_LEN+JUDGE_GRAPHIC_CHARACTER_LEN);
+				//如果申请内存成功，那么写入数据，否则直接解锁对象
+				if(Send_Buff)
+				{
+						memcpy(Send_Buff,&Graphic_Obj_To_Send->Character_To_Send->Graphic_Data,JUDGE_GRAPHIC_DATA_LEN);
+						memcpy(&Send_Buff[JUDGE_GRAPHIC_DATA_LEN],Graphic_Obj_To_Send->Character_To_Send->Ext_Data,
+										strlen((char*)(Graphic_Obj_To_Send->Character_To_Send->Ext_Data)));	
+						//如果对象需要删除，那么直接删除，否则设置空操作后解锁
+						if(Graphic_Obj_To_Send->Character_To_Send->Graphic_Data.operate_tpye==OPT_DELETE)
+						{
+							Judge_Graphic_Obj_Del_Asyn(Graphic_Obj_To_Send->Character_To_Send);
+						}
+						else
+						{
+							Graphic_Obj_To_Send->Character_To_Send->Graphic_Data.operate_tpye=OPT_NONE;
+							Judge_Graphic_Obj_Unlock(Graphic_Obj_To_Send->Character_To_Send);
+						}
+						//最后发送数据
+						Judge_Student_Data_Send(Send_Buff,JUDGE_GRAPHIC_DATA_LEN+JUDGE_GRAPHIC_CHARACTER_LEN,GRAPHIC_CMDID_CHARACTER,Target_Client);
+				}
+				else
+				{
+						Judge_Graphic_Obj_Unlock(Graphic_Obj_To_Send->Character_To_Send);
+				}
+		}
+		
+		if(Graphic_Obj_To_Send->Num_Of_CommonObj_To_Send)
+		{
+				uint8_t Item_To_Send = 0;
+				uint32_t CmdID = 0;
+				if(Graphic_Obj_To_Send->Num_Of_CommonObj_To_Send>6)
+				{
+					Item_To_Send = 7;
+					CmdID = GRAPHIC_CMDID_SEVEN;
+				}
+				else if(Graphic_Obj_To_Send->Num_Of_CommonObj_To_Send>4)
+				{
+					Item_To_Send = 5;
+					CmdID = GRAPHIC_CMDID_FIVE;
+				}
+				else if(Graphic_Obj_To_Send->Num_Of_CommonObj_To_Send>1)
+				{
+					Item_To_Send = 2;
+					CmdID = GRAPHIC_CMDID_TWO;
+				}
+				else if(Graphic_Obj_To_Send->Num_Of_CommonObj_To_Send>0)
+				{
+					Item_To_Send = 1;
+					CmdID = GRAPHIC_CMDID_ONE;
+				}
+				
+				uint8_t* Send_Buff = pvPortMalloc(JUDGE_GRAPHIC_DATA_LEN*Item_To_Send);
+				//如果申请失败，令需要发送的数量为0
+				if(!Send_Buff)
+						Item_To_Send = 0;
+				
+				for(uint8_t i = 0;i < Graphic_Obj_To_Send->Num_Of_CommonObj_To_Send;i++)
+				{
+						//如果需要发送，那么写入发送缓冲区，否则直接解锁
+						if(i<Item_To_Send)
+						{
+							memcpy(&Send_Buff[i*JUDGE_GRAPHIC_DATA_LEN],&Graphic_Obj_To_Send->CommonObj_To_Send[i]->Graphic_Data,JUDGE_GRAPHIC_DATA_LEN);
+							//看是否是删除操作，如果是，那么删除这个对象，否则直接设为空操作并解锁
+							if(Graphic_Obj_To_Send->CommonObj_To_Send[i]->Graphic_Data.operate_tpye==OPT_DELETE)
+							{
+								Judge_Graphic_Obj_Del_Asyn(Graphic_Obj_To_Send->CommonObj_To_Send[i]);
+							}
+							else
+							{
+								Graphic_Obj_To_Send->CommonObj_To_Send[i]->Graphic_Data.operate_tpye = OPT_NONE;
+								Judge_Graphic_Obj_Unlock(Graphic_Obj_To_Send->CommonObj_To_Send[i]);
+							}
+						}
+						else
+						{
+								Judge_Graphic_Obj_Unlock(Graphic_Obj_To_Send->CommonObj_To_Send[i]);
+						}
+				}
+				
+				if(Item_To_Send)
+						Judge_Student_Data_Send(Send_Buff,Item_To_Send*JUDGE_GRAPHIC_DATA_LEN,CmdID,Target_Client);
+		}
+		
+}
+
+void Judge_Graphic_Handler(void)
+{
+		Judge_Graphic_Obj_To_Send_t Graphic_Obj_To_Send; 
+		memset(&Graphic_Obj_To_Send,0,sizeof(Judge_Graphic_Obj_To_Send_t));
+		Iterate_All_ListItem(&DJI_Judge_Graphic.Graphic_Obj_List,&Graphic_Obj_To_Send,NULL,Judge_Graphic_Obj_Iterator);	
+		Judge_Graphic_Obj_Send(&Graphic_Obj_To_Send);
 }

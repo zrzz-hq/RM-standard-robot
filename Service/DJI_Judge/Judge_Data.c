@@ -68,17 +68,11 @@ void Judge_Usart_Init()
 	USART_DMACmd(USART6, USART_DMAReq_Tx, ENABLE); 
 	USART_Cmd(USART6,ENABLE);
 	
-	NVIC_InitStructure.NVIC_IRQChannel = USART6_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 5;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE; 
-	NVIC_Init(&NVIC_InitStructure);
-	
 	DMA_Cmd(DMA2_Stream1, DISABLE);
 	DMA_DeInit(DMA2_Stream1);
 	DMA_InitStructure.DMA_Channel	= DMA_Channel_5;
 	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&(USART6->DR);
-	DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)Judge_Data.Judge_Usart_Rx_Buff[0];
+	DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)(Judge_Data.Judge_Usart_Rx_Buff[0]);
 	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralToMemory;
 	DMA_InitStructure.DMA_BufferSize = DJI_JUDGE_BUF_MAX_LEN;
 	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
@@ -88,12 +82,15 @@ void Judge_Usart_Init()
 	DMA_InitStructure.DMA_Mode = DMA_Mode_Circular;
 	DMA_InitStructure.DMA_Priority = DMA_Priority_VeryHigh;
 	DMA_InitStructure.DMA_FIFOMode = DMA_FIFOMode_Disable;
+	DMA_InitStructure.DMA_FIFOThreshold = DMA_FIFOThreshold_1QuarterFull;
+	DMA_InitStructure.DMA_MemoryBurst = DMA_MemoryBurst_Single;
+	DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
 	DMA_Init(DMA2_Stream1,&DMA_InitStructure);
 	
 	DMA_DoubleBufferModeConfig(DMA2_Stream1, (uint32_t)Judge_Data.Judge_Usart_Rx_Buff[1], DMA_Memory_0);
   DMA_DoubleBufferModeCmd(DMA2_Stream1, ENABLE);
 	
-	//DMA_ITConfig(DMA2_Stream1,DMA_IT_TC,ENABLE);
+	DMA_ITConfig(DMA2_Stream1,DMA_IT_TC,ENABLE);
 	DMA_Cmd(DMA2_Stream1,DISABLE);
 	DMA_Cmd(DMA2_Stream1,ENABLE);
 	
@@ -120,6 +117,12 @@ void Judge_Usart_Init()
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 5;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+	
+	NVIC_InitStructure.NVIC_IRQChannel = USART6_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 5;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE; 
 	NVIC_Init(&NVIC_InitStructure);
 }
 
@@ -238,8 +241,9 @@ void Judge_Data_Init()
 }
 
 
-static void Data_Parse_Handler(uint8_t* Judge_Data_Buff)
+static uint16_t Data_Parser(uint8_t* Judge_Data_Buff)
 {
+		//读取帧头，并CRC校验，如果失败直接跳过
 		Judge_Frame_Header_t*  Judge_Frame_Header = (Judge_Frame_Header_t*)Judge_Data_Buff;
 		if(verify_crc8_check_sum(Judge_Data_Buff,JUDGE_HEADER_LEN,Judge_Frame_Header->crc8))
 		{
@@ -252,9 +256,21 @@ static void Data_Parse_Handler(uint8_t* Judge_Data_Buff)
 						uint8_t* Data = Judge_Data_Buff + JUDGE_HEADER_LEN + JUDGE_CMDID_LEN;
 						Judge_Info_Update(Data,Data_Len,Judge_Frame_Header->cmd_id);
 				}
+				return Data_Frame_Len;
+		}
+		return DJI_JUDGE_BUF_MAX_LEN;				
+}
+
+static void Data_Process_Handler(uint8_t* Judge_Data_Buff)
+{
+		//由于可能存在两帧连发，所以必须向后遍历
+		uint16_t Parser_Pos = 0;
+		while(Parser_Pos<DJI_JUDGE_BUF_MAX_LEN)
+		{
+				uint16_t Data_Frame_Len = Data_Parser(&Judge_Data_Buff[Parser_Pos]);
+				Parser_Pos += Data_Frame_Len;
 		}
 		memset(Judge_Data_Buff,0,DJI_JUDGE_BUF_MAX_LEN);
-		
 }
 
 void Judge_Usart_DMA_Send(uint32_t Size)
@@ -330,31 +346,39 @@ void Judge_Student_Data_Send(uint8_t* Stuent_Data,uint16_t Student_Data_Len,uint
 void USART6_IRQHandler(void)
 {
 
-    if (USART_GetITStatus(USART6, USART_IT_IDLE) != RESET)
+    if (USART_GetITStatus(USART6, USART_IT_RXNE) != RESET)
     {
-			USART_ClearFlag(USART6,USART_FLAG_IDLE);
-			USART_ReceiveData(USART6);
+        USART_ReceiveData(USART6);
+    }
+	
+		if (USART_GetITStatus(USART6, USART_IT_IDLE) != RESET)
+    {
+			
+			volatile uint16_t Flag = USART6->SR;
+			volatile uint16_t Data = USART6->DR;
 
 			if(DMA_GetCurrentMemoryTarget(DMA2_Stream1) == 0)
 			{
-					
+					Judge_Data.Judge_Usart_Current_Rx_Buff = 0;
 					DMA_Cmd(DMA2_Stream1,DISABLE);
 					DMA_SetCurrDataCounter(DMA2_Stream1,DJI_JUDGE_BUF_MAX_LEN);
 					DMA2_Stream1->CR |= DMA_SxCR_CT;
 					DMA_ClearFlag(DMA2_Stream1, DMA_FLAG_TCIF1 | DMA_FLAG_HTIF1);
 					DMA_Cmd(DMA2_Stream1, ENABLE);
-					Data_Parse_Handler(Judge_Data.Judge_Usart_Rx_Buff[0]);
+					Data_Process_Handler(Judge_Data.Judge_Usart_Rx_Buff[0]);
 			}
 			else
 			{
+					Judge_Data.Judge_Usart_Current_Rx_Buff = 1;
 					DMA_Cmd(DMA2_Stream1,DISABLE);
 					DMA_SetCurrDataCounter(DMA2_Stream1,DJI_JUDGE_BUF_MAX_LEN);
 					DMA2_Stream1->CR &= ~(DMA_SxCR_CT);
 					DMA_ClearFlag(DMA2_Stream1, DMA_FLAG_TCIF1 | DMA_FLAG_HTIF1);
 					DMA_Cmd(DMA2_Stream1, ENABLE);
-					Data_Parse_Handler(Judge_Data.Judge_Usart_Rx_Buff[1]);
+					Data_Process_Handler(Judge_Data.Judge_Usart_Rx_Buff[1]);
 						
 			}
+			USART_ClearITPendingBit(USART6,USART_IT_IDLE);
 				
     }
 //		else if(DMA_GetITStatus(DMA1_Stream2,DMA_IT_DMEIF2) != RESET)

@@ -73,7 +73,8 @@
 #define INS_ACCEL_X_ADDRESS_OFFSET 0
 #define INS_ACCEL_Y_ADDRESS_OFFSET 1
 #define INS_ACCEL_Z_ADDRESS_OFFSET 2
-
+#define IMU_TASK_PRIO 20
+#define IMU_STK_SIZE 512
 extern void IMU_Task(void *pvParameters);
 
 extern void INS_cali_gyro(fp32 cali_scale[3], fp32 cali_offset[3], uint16_t *time_count);
@@ -83,3 +84,4 @@ extern const fp32 *get_MPU6500_Gyro_Data_Point(void);
 extern const fp32 *get_MPU6500_Accel_Data_Point(void);
 
 #endif
+void Create_IMU_Task();

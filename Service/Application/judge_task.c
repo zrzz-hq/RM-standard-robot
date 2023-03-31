@@ -12,24 +12,39 @@
   ****************************(C) COPYRIGHT 2021 HRBUST_AIR****************************
 	* @describe OLEDœ‘ æ∆¡»ŒŒÒ
 */
+
 #include "judge_task.h"
 
 #include "chassis_task.h"
 
 #include "Judge_Data.h"
+#include "Judge_Graphic.h"
 #include "DJI_Remote_Control.h"
 
 #include "FreeRTOSConfig.h"
 #include "FreeRTOS.h"
 #include "task.h"
 
+static TaskHandle_t JudgeTask_Handler;	
+
+
 void Judge_Task(void *pvParameters)
 {
-	vTaskDelay(500);
-	
+	Judge_Data_Init();
+	Judge_Graphic_Init();
 	while(1)
 	{
-			
-			vTaskDelay(Judge_Set_Update_Time_Set);
+			Judge_Graphic_Handler();
+			vTaskDelay(100);
 	}
+}
+
+void Create_Judge_Task()
+{
+		xTaskCreate((TaskFunction_t)Judge_Task,
+		(const char *)"JudgeTast",
+		(uint16_t)JUDGE_STK_SIZE,
+		(void *)NULL,
+		(UBaseType_t)JUDGE_TASK_PRIO,
+		(TaskHandle_t *)&JudgeTask_Handler);
 }

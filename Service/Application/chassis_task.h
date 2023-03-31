@@ -66,6 +66,9 @@
 #define CHASSIS_MOTOR_ALL_ID 0x200
 #define CHASSIS_CAN CAN2_RX
 
+#define CHASSIS_TASK_PRIO 20
+#define CHASSIS_STK_SIZE 512
+
 typedef enum
 {
 	CHASSIS_ZERO = 0,//ÎÞ¿ØÖÆ£¬´«ËÍ0
@@ -135,4 +138,4 @@ void Chassis_Task(void *pvParameters);
 uint8_t Is_Chassis_Spin();
 
 #endif
-
+void Create_Chassis_task();

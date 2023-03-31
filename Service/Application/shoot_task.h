@@ -72,6 +72,8 @@
 #define DEFAULT_SHOOT_SPEED_LIMIT 10
 #define DEFAULT_SHOOT_FREQ_LIMIT  1
 //#define MAX_SHOOT_FREQ 5 //机械上能够达到的最大射速
+#define SHOOT_TASK_PRIO 20
+#define SHOOT_STK_SIZE 512
 
 typedef enum
 {
@@ -155,4 +157,4 @@ typedef struct
 void Shoot_Task(void *pvParameters);
 
 #endif
-
+void Create_Shoot_Task();

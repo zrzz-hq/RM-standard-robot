@@ -4,6 +4,7 @@
 #include "freertos_usr_lib.h"
 #include "gui_task.h"
 #include "Start_Task.h"
+#include "judge_task.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,6 +14,8 @@
 
 Data_t Data;
 TaskHandle_t DataTask_Handler;
+
+#define Data_Assert(Ptr) Data_Assert_Fault_Handler()
 
 void Send_Msg_To_Gui(Data_Msg_Type_t Type,void* Usr_Data)
 {
@@ -45,41 +48,46 @@ uint8_t Get_Variable_Size(Variable_t* Var)
 
 Variable_t* Get_Next_Variable(Variable_t* Var)
 {
-		ListItem_t* List_Item = Get_Next_ListItem(Var->List_Item);
-		if(!List_Item)
+		Data_Assert(Var);
+		ListItem_t* ListItem = (ListItem_t*)Var;
+		ListItem_t* Next_ListItem = Get_Next_ListItem(ListItem,portMAX_DELAY);
+		if(!Next_ListItem)
 			return NULL;
-		return (Variable_t*)(List_Item->xItemValue);
+		return (Variable_t*)(Next_ListItem);
 }
 
 Variable_t* Get_Prev_Variable(Variable_t* Var)
 {
-		ListItem_t* List_Item = Get_Prev_ListItem(Var->List_Item);
-		if(!List_Item)
+		Data_Assert(Var);
+		ListItem_t* ListItem = (ListItem_t*)Var;
+		ListItem_t* Prev_ListItem = Get_Prev_ListItem(ListItem,portMAX_DELAY);
+		if(!Prev_ListItem)
 			return NULL;
-		return (Variable_t*)(List_Item->xItemValue);
+		return (Variable_t*)(Prev_ListItem);
 }
 
 Variable_t* Get_First_Variable()
 {
-		ListItem_t* List_Item = Get_First_ListItem(&Data.Var_List);
-		if(!List_Item)
+		Data_Assert(Var);
+		ListItem_t* First_ListItem = Get_First_ListItem(&Data.Var_List,portMAX_DELAY);
+		if(!First_ListItem)
 			return NULL;
-		return (Variable_t*)(List_Item->xItemValue);
+		return (Variable_t*)(First_ListItem);
 }
 
 
-static int8_t Iterate_All_Variable_CallBack(ListItem_t* List_Item,void* Usr_Data1,void* Usr_Data2)
+static int8_t Iterate_All_Variable_CallBack(ListItem_t* ListItem,void* Usr_Data1,void* Usr_Data2)
 {
-		Variable_t* Var = (Variable_t*)List_Item->xItemValue;
+		Variable_t* Var = (Variable_t*)ListItem;
 		int8_t(*Usr_CallBack)(Variable_t*,void*) = Usr_Data1;
 		return Usr_CallBack(Var,Usr_Data2);
 }
 
 Variable_t* Iterate_All_Variable(void* Usr_Data,int8_t(*CallBack)(Variable_t*,void* Usr_Data))
 {
-		ListItem_t* List_Item = Iterate_All_ListItem(&Data.Var_List,(void*)CallBack,Usr_Data,Iterate_All_Variable_CallBack);
-		if(List_Item)
-			return (Variable_t*)List_Item->xItemValue;
+		ListItem_t* ListItem = Iterate_All_ListItem(&Data.Var_List,(void*)CallBack,Usr_Data,Iterate_All_Variable_CallBack);
+		if(ListItem)
+			return (Variable_t*)ListItem;
 		return NULL;
 }
 
@@ -431,43 +439,29 @@ Data_Res_t Add_Variable_By_Name_In_Task(char* Var_Name,void* Var_Addr,Variable_T
 		if(!Find_Variable_By_Name(Var_Name))
 		{
 				//申请链表节点内存
-				ListItem_t* New_List_Item= pvPortMalloc(sizeof(ListItem_t));
+				Variable_t* New_Var= pvPortMalloc(sizeof(Variable_t));
 				//申请失败，返回错误
-				if(!New_List_Item)
+				if(!New_Var)
 						Res = DATA_MEM_ERROR;
 				else
 				{
-					
+						ListItem_t* New_ListItem = (ListItem_t*)New_Var;
 						//初始化链表节点
-						vListInitialiseItem(New_List_Item);
-						//申请新变量结构体内存
-						Variable_t* New_Var = pvPortMalloc(sizeof(Variable_t));
-						//申请失败，返回错误
-						if(!New_Var)
+						vListInitialiseItem(New_ListItem);
+						//配置新变量结构体
+						New_Var->Var_Name = Var_Name;
+						New_Var->Var_Addr = Var_Addr;
+						New_Var->Var_Type = Var_Type;
+						New_Var->Read_Only = Read_Only;
+						//插入到链表中
+						List_Insert_End(&Data.Var_List,New_ListItem,portMAX_DELAY);
+						//如果不是只读变量，且要求刷新的话，进行刷新
+						if(!Read_Only)
 						{
-								vPortFree(New_List_Item);
-								Res = DATA_MEM_ERROR;
+								Load_Store_Variable_Val(New_Var,1);
 						}
 						else
-						{
-								//配置新变量结构体
-								New_Var->List_Item = New_List_Item;
-								New_List_Item->xItemValue = (uint32_t)New_Var;
-								
-								New_Var->Var_Name = Var_Name;
-								New_Var->Var_Addr = Var_Addr;
-								New_Var->Var_Type = Var_Type;
-								New_Var->Read_Only = Read_Only;
-								//插入到链表中
-								vListInsertEnd(&Data.Var_List,New_List_Item);
-								//如果不是只读变量，且要求刷新的话，进行刷新
-								if(!Read_Only)
-								{
-										Load_Store_Variable_Val(New_Var,1);
-								}
-								else
-										Data.ReadOnly_Count++;
-						}
+								Data.ReadOnly_Count++;
 				}
 		}
 		else
@@ -494,87 +488,87 @@ Data_Res_t Refresh_DataFile_In_Task()
 		return DATA_SUCCESS;
 }
 
-Data_Res_t Trace_Variable_By_Ptr_In_Task(Variable_t* Var,uint16_t Max_Time,void* CallBack)
-{
-		if(Var)
-				return DATA_INVAILD_TYPE;
-		
-		//获取信号量，每次仅限一个任务访问变量
-		//xSemaphoreTake(Data.Variable_Semphr,portMAX_DELAY);
-		Data_Res_t Res = DATA_SUCCESS;
+//Data_Res_t Trace_Variable_By_Ptr_In_Task(Variable_t* Var,uint16_t Max_Time,void* CallBack)
+//{
+//		if(Var)
+//				return DATA_INVAILD_TYPE;
+//		
+//		//获取信号量，每次仅限一个任务访问变量
+//		//xSemaphoreTake(Data.Variable_Semphr,portMAX_DELAY);
+//		Data_Res_t Res = DATA_SUCCESS;
 
-		Variable_Trace_t* Trace = pvPortMalloc(sizeof(Variable_Trace_t));
-		if(!Trace)
-		{
-				Res = DATA_MEM_ERROR;
-				goto Error;
-		}
+//		Variable_Trace_t* Trace = pvPortMalloc(sizeof(Variable_Trace_t));
+//		if(!Trace)
+//		{
+//				Res = DATA_MEM_ERROR;
+//				goto Error;
+//		}
 
-		uint8_t Size = Get_Variable_Size(Var);
-		Trace->SnapShort = pvPortMalloc(Size);
-		if(!Trace->SnapShort)
-		{
-				Res = DATA_MEM_ERROR;
-				goto Error;
-		}
+//		uint8_t Size = Get_Variable_Size(Var);
+//		Trace->SnapShort = pvPortMalloc(Size);
+//		if(!Trace->SnapShort)
+//		{
+//				Res = DATA_MEM_ERROR;
+//				goto Error;
+//		}
 
-		Trace->List_Item = pvPortMalloc(sizeof(ListItem_t));
-		if(!Trace->List_Item)
-		{
-				Res = DATA_MEM_ERROR;
-				goto Error;
-		}
-		
-		Trace->List_Item->xItemValue = (uint32_t)Trace;
-		vListInsertEnd(&Data.Trace_List,Trace->List_Item);
-		Trace->Var = Var;
-		Trace->CallBack = CallBack;
-		Trace->Size = Size;
-		Trace->Max_No_Change_Time = Max_Time;
-		//拍摄快照
-		taskENTER_CRITICAL();
-		memcpy(Trace->SnapShort,Var->Var_Addr,Size);
-		taskEXIT_CRITICAL(); 
-		goto End;
-			
-	Error:
-		if(Trace->List_Item)
-			vPortFree(Trace->List_Item);
-		if(Trace->SnapShort)
-			vPortFree(Trace->SnapShort);
-		if(Trace)
-			vPortFree(Trace);
-			
-	End:	
-		//释放信号量
-		//xSemaphoreGive(Data.Variable_Semphr);
-		return Res;
-			
-}
+//		Trace->List_Item = pvPortMalloc(sizeof(ListItem_t));
+//		if(!Trace->List_Item)
+//		{
+//				Res = DATA_MEM_ERROR;
+//				goto Error;
+//		}
+//		
+//		Trace->List_Item->xItemValue = (uint32_t)Trace;
+//		vListInsertEnd(&Data.Trace_List,Trace->List_Item);
+//		Trace->Var = Var;
+//		Trace->CallBack = CallBack;
+//		Trace->Size = Size;
+//		Trace->Max_No_Change_Time = Max_Time;
+//		//拍摄快照
+//		taskENTER_CRITICAL();
+//		memcpy(Trace->SnapShort,Var->Var_Addr,Size);
+//		taskEXIT_CRITICAL(); 
+//		goto End;
+//			
+//	Error:
+//		if(Trace->List_Item)
+//			vPortFree(Trace->List_Item);
+//		if(Trace->SnapShort)
+//			vPortFree(Trace->SnapShort);
+//		if(Trace)
+//			vPortFree(Trace);
+//			
+//	End:	
+//		//释放信号量
+//		//xSemaphoreGive(Data.Variable_Semphr);
+//		return Res;
+//			
+//}
 
-static int8_t Iterate_All_Trace_CallBack(ListItem_t* List_Item,void* Usr_Data1,void* Usr_Data2)
-{
-		Variable_Trace_t* Trace = (Variable_Trace_t*)List_Item->xItemValue;
-	
-		//进入临界区，操作期间不允许数据修改
-		taskENTER_CRITICAL();
-		//比较变量当前值与快照有无差别，如果没有差别，计数器加一，否则，计数器清零
-		if(memcmp(Trace->SnapShort,Trace->Var->Var_Addr,Trace->Size)==0)
-			Trace->No_Change_Time++;
-		else
-			Trace->No_Change_Time=0;
-		//创建新快照
-		memcpy(Trace->SnapShort,Trace->Var->Var_Addr,Trace->Size);
-		//退出临界区
-		taskEXIT_CRITICAL(); 
-		
-		//变量很长时间没有发生改变，那么调用回调函数
-		if(Trace->No_Change_Time>Trace->Max_No_Change_Time)
-			Trace->CallBack(Trace->Var);
-		return 1;
-}
+//static int8_t Iterate_All_Trace_CallBack(ListItem_t* List_Item,void* Usr_Data1,void* Usr_Data2)
+//{
+//		Variable_Trace_t* Trace = (Variable_Trace_t*)List_Item->xItemValue;
+//	
+//		//进入临界区，操作期间不允许数据修改
+//		taskENTER_CRITICAL();
+//		//比较变量当前值与快照有无差别，如果没有差别，计数器加一，否则，计数器清零
+//		if(memcmp(Trace->SnapShort,Trace->Var->Var_Addr,Trace->Size)==0)
+//			Trace->No_Change_Time++;
+//		else
+//			Trace->No_Change_Time=0;
+//		//创建新快照
+//		memcpy(Trace->SnapShort,Trace->Var->Var_Addr,Trace->Size);
+//		//退出临界区
+//		taskEXIT_CRITICAL(); 
+//		
+//		//变量很长时间没有发生改变，那么调用回调函数
+//		if(Trace->No_Change_Time>Trace->Max_No_Change_Time)
+//			Trace->CallBack(Trace->Var);
+//		return 1;
+//}
 
-#define Iterate_All_Trace() Iterate_All_ListItem(&Data.Trace_List,NULL,NULL,Iterate_All_Trace_CallBack);
+//#define Iterate_All_Trace() Iterate_All_ListItem(&Data.Trace_List,NULL,NULL,Iterate_All_Trace_CallBack);
 
 
 Data_Res_t Save_Data_To_SDCard(void)
@@ -700,8 +694,8 @@ void Data_Init()
 		Can_Undo();
 		xSemaphoreGive(Data.Modify_Stack.Stack_Semphr);
 		
-		vListInitialise(&Data.Var_List);
-		vListInitialise(&Data.Trace_List);
+		List_Init(&Data.Var_List);
+		List_Init(&Data.Trace_List);
 		
 		cJSON_Hooks Hooks;
 		Hooks.free_fn = vPortFree;
@@ -712,11 +706,9 @@ void Data_Init()
 void Data_Task(void *pvParameters)
 {
 		Data_Init();
-		create_gui_control_task();
-		Create_Start_Task();
 		while(1)
 		{
-				Iterate_All_Trace();
+				//Iterate_All_Trace();
 				vTaskDelay(100);
 		}
 }

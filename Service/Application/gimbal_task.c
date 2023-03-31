@@ -38,7 +38,7 @@
 
 Gimbal_t Gimbal;
 
-
+static TaskHandle_t GimbalTask_Handler;
 
 float* Get_Gimbal_Yaw_Angle(void)
 {
@@ -512,3 +512,14 @@ Gimbal_Mode_t* Return_Gimbal_Mode_Add(void)
 {
 	return &Gimbal.Gimbal_Mode;
 }
+
+void Create_Gimbal_Task()
+{
+	xTaskCreate((TaskFunction_t)Gimbal_Task,
+		(const char *)"Gimbal_Task",
+		(uint16_t)GIMBAL_STK_SIZE,
+		(void *)NULL,
+		(UBaseType_t)GIMBAL_TASK_PRIO,
+		(TaskHandle_t *)&GimbalTask_Handler);	
+}
+

@@ -28,7 +28,7 @@
 
 Shoot_t Shoot;
 
-
+static TaskHandle_t ShootTask_Handler;
 void Shoot_Add_Variable(Shoot_t* Shoot_Variable)
 {
 		Add_Variable_By_Name_In_Task("Shoot Left Fric Speed Kp",&Shoot_Variable->Fric_Motor_Pid[0].kp,VAR_TYPE_FP32,0);
@@ -417,8 +417,6 @@ void Shoot_Task(void *pvParameters)
 		//获取发射状态
 		Shoot_Data_Update(&Shoot);
 		//裁判系统状态更新
-//		Shoot_Judge_Data_Check(&Shoot,&Shoot_Fric_Speed_Sett,&Trigger_Speed_Sett);
-		
 		Shoot_Control_Data_Set(&Shoot);
 		
 		Shoot_Pid_Calc(&Shoot);
@@ -431,3 +429,12 @@ void Shoot_Task(void *pvParameters)
 	}
 }
 
+void Create_Shoot_Task()
+{
+	xTaskCreate((TaskFunction_t)Shoot_Task,
+	  (const char *)"Shoot_Task",
+		(uint16_t)SHOOT_STK_SIZE,
+		(void *)NULL,
+		(UBaseType_t)SHOOT_TASK_PRIO,
+		(TaskHandle_t *)&ShootTask_Handler);	
+}

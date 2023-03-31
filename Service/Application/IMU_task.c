@@ -48,7 +48,7 @@
 #define MPU6500_TEMPERATURE_PWM_INIT() TIM3_Init(MPU6500_TEMP_PWM_MAX, 1) //陀螺仪温度控制PWM初始化
 #define IMUTempPWM(pwm) TIM_SetCompare2(TIM3, (pwm))                      //pwm给定
 #define INS_GET_CONTROL_TEMPERATURE() get_control_temperate()             //获取控制温度的目标值
-
+static TaskHandle_t IMUTask_Handler;
 #if defined(MPU6500_USE_DATA_READY_EXIT)
 
 #define MPU6500_DATA_READY_EXIT_INIT() GPIOB_Exti8_GPIO_Init() //初始化mpu6500的 外部中断 使用PB8 外部中断线 8
@@ -459,3 +459,12 @@ void MPU6500_DMA_IRQHandler(void)
 }
 
 #endif
+void Create_IMU_Task()
+{
+	xTaskCreate((TaskFunction_t)IMU_Task,
+	  (const char *)"IMU_Task",
+		(uint16_t)IMU_STK_SIZE,
+		(void *)NULL,
+		(UBaseType_t)IMU_TASK_PRIO,
+		(TaskHandle_t *)&IMUTask_Handler);
+}

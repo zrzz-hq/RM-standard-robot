@@ -31,6 +31,9 @@ Chassis_t Chassis;
 
 extern Gimbal_t Gimbal;
 
+
+static TaskHandle_t ChassisTask_Handler;
+
 void Chassis_Add_Variable(Chassis_t* Chassis_Variable)
 {
 		Add_Variable_By_Name_In_Task("Chassis Motor Kp",&Chassis_Variable->Chassis_Motor_Pid[0].kp,VAR_TYPE_FP32,0);
@@ -553,4 +556,14 @@ Chassis_Mode_t* Return_Chassis_Mode_Add(void)
 uint8_t Is_Chassis_Spin()
 {
 		return Chassis.Chassis_Mode==CHASSIS_SPIN_LEFT||Chassis.Chassis_Mode==CHASSIS_SPIN_RIGHT;
+}
+
+void Create_Chassis_task()
+{
+	xTaskCreate((TaskFunction_t)Chassis_Task,
+	  (const char *)"Chassis_Task",
+	  (uint16_t)CHASSIS_STK_SIZE,
+		(void *)NULL,
+		(UBaseType_t)CHASSIS_TASK_PRIO,
+		(TaskHandle_t *)&ChassisTask_Handler);
 }

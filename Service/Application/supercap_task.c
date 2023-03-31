@@ -131,3 +131,13 @@ void supercap_task(void *pvParameters)
 			vTaskDelay(15);
 	}
 }
+
+void create_supercap_task()
+{
+	xTaskCreate((TaskFunction_t)supercap_task,
+	  (const char *)"SuperCap_Task",
+	  (uint16_t)SUPERCAP_STK_SIZE,
+		(void *)NULL,
+		(UBaseType_t)SUPERCAP_TASK_PRIO,
+		(TaskHandle_t *)&SuperCapTask_Handler);	
+}

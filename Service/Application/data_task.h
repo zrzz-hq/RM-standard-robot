@@ -7,10 +7,7 @@
 #include "FreeRTOSConfig.h"
 #include "FreeRTOS.h"
 
-#include "list.h"
-#include "semphr.h"
-#include "task.h"
-#include "event_groups.h"
+#include "freertos_usr_lib.h"
 
 //#include "ff.h"
 #include "sdio.h"
@@ -31,13 +28,14 @@
 
 #define SD_CARD_DETECT_KEY  GPIO_ReadInputDataBit(SD_DETECT_GPIO_PORT,SD_DETECT_PIN)
 
-#define DATA_TASK_PRIO 9
+#define DATA_TASK_PRIO 31
 #define DATA_STK_SIZE 512
 
 #define DATA_MSG_QUEUE_LEN 20
 
 #define DATA_EVENT_INIT_DONE 0x01
 
+#define Data_Assert_Fault_Handler() while(1)
 #define Is_Last_Variable(Var) Var->List_Item->pxNext == Data.Var_List.pxIndex
 #define Is_First_Variable(Var) listGET_HEAD_ENTRY(&Data.Var_List)==Var->List_Item	
 #define Get_Variable_Count()   Data.Var_List.uxNumberOfItems
@@ -69,7 +67,7 @@ typedef enum
 
 typedef struct
 {
-		ListItem_t* List_Item;
+		ListItem_t ListItem;
 		char* Var_Name;
 		void* Var_Addr;
 		Variable_Type_t Var_Type;
@@ -78,7 +76,7 @@ typedef struct
 
 typedef struct
 {
-		ListItem_t* List_Item;
+		ListItem_t ListItem;
 		Variable_t* Var;
 		uint8_t Size;
 		uint16_t No_Change_Time;
@@ -125,8 +123,8 @@ typedef __packed struct
 
 typedef struct
 {
-		List_t Var_List;
-		List_t Trace_List;
+		ListEx_t Var_List;
+		ListEx_t Trace_List;
 		uint8_t ReadOnly_Count;
 	
 		Modify_Stack_t Modify_Stack;
@@ -136,10 +134,6 @@ typedef struct
 		
 		QueueHandle_t Data_Msg_Queue;
 }Data_t;
-
-extern TaskHandle_t DataTask_Handler;
-extern Data_t Data;
-
 
 TaskHandle_t* Create_Data_Task(void);
 

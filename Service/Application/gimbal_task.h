@@ -102,6 +102,8 @@
 
 #define GIMBAL_MAX_NO_OPT_TIME 1000
 
+#define GIMBAL_TASK_PRIO 20
+#define GIMBAL_STK_SIZE 512
 typedef enum
 {
 	GIMBAL_ZERO = 0,//ÎÞ¿ØÖÆ£¬´«ËÍ0
@@ -236,3 +238,4 @@ float* Get_Gimbal_Yaw_Angle(void);
 Gimbal_Mode_t* Return_Gimbal_Mode_Add(void);
 
 #endif 
+void Create_Gimbal_Task();

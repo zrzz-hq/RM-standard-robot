@@ -17,6 +17,7 @@
 #include "FreeRTOSConfig.h"
 #include "FreeRTOS.h"
 #include "task.h"
+static TaskHandle_t UserTask_Handler;
 
 void UserTask(void *pvParameters)
 {
@@ -32,3 +33,12 @@ void UserTask(void *pvParameters)
 	}
 }
 
+ void Create_User_task()
+{
+	xTaskCreate((TaskFunction_t)UserTask,
+		(const char *)"UserTast",
+		(uint16_t)USER_STK_SIZE,
+		(void *)NULL,
+		(UBaseType_t)USER_TASK_PRIO,
+		(TaskHandle_t *)&UserTask_Handler);
+}
