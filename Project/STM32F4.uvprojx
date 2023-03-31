@@ -860,19 +860,9 @@
               <FilePath>..\Service\DJI_Judge\Judge_Data.c</FilePath>
             </File>
             <File>
-              <FileName>Judge_Data.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\Service\DJI_Judge\Judge_Data.h</FilePath>
-            </File>
-            <File>
               <FileName>Judge_CRC.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Service\DJI_Judge\Judge_CRC.c</FilePath>
-            </File>
-            <File>
-              <FileName>Judge_CRC.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\Service\DJI_Judge\Judge_CRC.h</FilePath>
             </File>
             <File>
               <FileName>Judge_Graphic.c</FileName>

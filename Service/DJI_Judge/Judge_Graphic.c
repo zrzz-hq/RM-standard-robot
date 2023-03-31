@@ -14,7 +14,15 @@ TaskHandle_t JudgeGraphicTask_Handler;
 #define Judge_Graphic_Obj_Poll(Obj) xSemaphoreTake((Obj)->Graphic_Obj_Mutex,0)
 #define Judge_Graphic_Obj_Unlock(Obj)  			xSemaphoreGive((Obj)->Graphic_Obj_Mutex)
 
+//图形操作优先级查找表,由高到低依次是：删除操作、添加操作、修改操作、空操作
+uint8_t Judge_Graphic_Opt_Prio[4] = {0,2,1,3};
+//要求操作的优先级大于当前操作的优先级，那么覆盖当前操作
+#define Judge_Graphic_Obj_Apply_Opt(Obj,Opt) \
+	if(Judge_Graphic_Opt_Prio[(Opt)]>Judge_Graphic_Opt_Prio[(Obj)->Graphic_Data.operate_tpye])		\
+			(Obj)->Graphic_Data.operate_tpye = (Opt);	
+
 /********基础操作函数**********/
+
 static Judge_Graphic_Obj_t* Judge_Graphic_Obj_Init()
 {
 		Judge_Assert(DJI_Judge_Graphic.Judge_Obj_Counter < 0xFFF);
@@ -24,7 +32,7 @@ static Judge_Graphic_Obj_t* Judge_Graphic_Obj_Init()
 		vListInitialiseItem((ListItem_t*)Obj);
 	
 		Obj->Graphic_Data.graphic_name = DJI_Judge_Graphic.Judge_Obj_Counter++;
-		//创建信号量，但不解锁，直到对象被真正发送出去后才解锁
+		//创建信号量
 		Obj->Graphic_Obj_Mutex = xSemaphoreCreateBinary();
 		Judge_Assert(Obj->Graphic_Obj_Mutex);
 	
@@ -38,8 +46,8 @@ void Judge_Graphic_Obj_Set_Color(Judge_Graphic_Obj_t* Obj,Judge_Graphic_Color_t 
 		Judge_Graphic_Obj_Lock(Obj);
 	
 		Obj->Graphic_Data.color = Color;
-		Obj->Graphic_Data.operate_tpye = OPT_CHANGE;
-	
+
+		Judge_Graphic_Obj_Apply_Opt(Obj,OPT_CHANGE);
 		Judge_Graphic_Obj_Unlock(Obj);
 }
 
@@ -113,7 +121,7 @@ void Judge_Graphic_Obj_Set_Width(Judge_Graphic_Obj_t* Obj,uint32_t W)
 				Obj->Graphic_Data.graphic_union.graphic_data.end_x = Obj->Graphic_Data.start_x + W;
 		}
 		
-		Obj->Graphic_Data.operate_tpye = OPT_CHANGE;
+		Judge_Graphic_Obj_Apply_Opt(Obj,OPT_CHANGE);
 		Judge_Graphic_Obj_Unlock(Obj);
 }
 
@@ -141,7 +149,7 @@ void Judge_Graphic_Obj_Set_Height(Judge_Graphic_Obj_t* Obj,uint32_t H)
 				Obj->Graphic_Data.graphic_union.graphic_data.end_y = Obj->Graphic_Data.start_y + H;
 		}
 		
-		Obj->Graphic_Data.operate_tpye = OPT_CHANGE;
+		Judge_Graphic_Obj_Apply_Opt(Obj,OPT_CHANGE);
 		Judge_Graphic_Obj_Unlock(Obj);
 }
 
@@ -223,7 +231,7 @@ void Judge_Graphic_Obj_Set_X(Judge_Graphic_Obj_t* Obj,uint32_t X)
 				Obj->Graphic_Data.start_x = X;
 				Obj->Graphic_Data.graphic_union.graphic_data.end_x = X+W;
 		}
-		Obj->Graphic_Data.operate_tpye = OPT_CHANGE;
+		Judge_Graphic_Obj_Apply_Opt(Obj,OPT_CHANGE);
 		Judge_Graphic_Obj_Unlock(Obj);
 }
 
@@ -249,7 +257,7 @@ void Judge_Graphic_Obj_Set_Y(Judge_Graphic_Obj_t* Obj,uint32_t Y)
 				Obj->Graphic_Data.graphic_union.graphic_data.end_y = Y+H;
 		}
 		
-		Obj->Graphic_Data.operate_tpye = OPT_CHANGE;
+		Judge_Graphic_Obj_Apply_Opt(Obj,OPT_CHANGE);
 		Judge_Graphic_Obj_Unlock(Obj);
 }
 
@@ -316,7 +324,7 @@ void Judge_Graphic_Obj_Set_Center_X(Judge_Graphic_Obj_t* Obj,uint32_t Cx)
 				Obj->Graphic_Data.start_x = Cx;
 		}
 		
-		Obj->Graphic_Data.operate_tpye = OPT_CHANGE;
+		Judge_Graphic_Obj_Apply_Opt(Obj,OPT_CHANGE);
 		Judge_Graphic_Obj_Unlock(Obj);
 }
 
@@ -337,7 +345,7 @@ void Judge_Graphic_Obj_Set_Center_Y(Judge_Graphic_Obj_t* Obj,uint32_t Cy)
 				Obj->Graphic_Data.start_y = Cy;
 		}
 		
-		Obj->Graphic_Data.operate_tpye = OPT_CHANGE;
+		Judge_Graphic_Obj_Apply_Opt(Obj,OPT_CHANGE);
 		Judge_Graphic_Obj_Unlock(Obj);
 }
 
@@ -414,7 +422,7 @@ void Judge_Graphic_Obj_Set_Radius_A(Judge_Graphic_Obj_t* Obj,uint32_t Ra)
 				Obj->Graphic_Data.graphic_union.graphic_data.end_x = Cx + Ra/2;
 		}
 		
-		Obj->Graphic_Data.operate_tpye = OPT_CHANGE;
+		Judge_Graphic_Obj_Apply_Opt(Obj,OPT_CHANGE);
 		Judge_Graphic_Obj_Unlock(Obj);
 }
 
@@ -438,7 +446,7 @@ void Judge_Graphic_Obj_Set_Radius_B(Judge_Graphic_Obj_t* Obj,uint32_t Rb)
 				Obj->Graphic_Data.graphic_union.graphic_data.end_x = Cy + Rb/2;
 		}
 		
-		Obj->Graphic_Data.operate_tpye = OPT_CHANGE;
+		Judge_Graphic_Obj_Apply_Opt(Obj,OPT_CHANGE);
 		Judge_Graphic_Obj_Unlock(Obj);
 }
 
@@ -482,6 +490,7 @@ void Judge_Graphic_Obj_Set_Start_Angle(Judge_Graphic_Obj_t* Obj,uint32_t Start_A
 			
 				Obj->Graphic_Data.start_angle = Start_Angle;
 			
+				Judge_Graphic_Obj_Apply_Opt(Obj,OPT_CHANGE);
 				Judge_Graphic_Obj_Unlock(Obj);
 		}
 }
@@ -495,6 +504,7 @@ void Judge_Graphic_Obj_Set_End_Angle(Judge_Graphic_Obj_t* Obj,uint32_t End_Angle
 			
 				Obj->Graphic_Data.end_angle = End_Angle;
 			
+				Judge_Graphic_Obj_Apply_Opt(Obj,OPT_CHANGE);
 				Judge_Graphic_Obj_Unlock(Obj);
 		}
 } 
@@ -514,7 +524,7 @@ void Judge_Graphic_Obj_Set_Line_Width(Judge_Graphic_Obj_t* Obj,uint32_t W)
 		Judge_Graphic_Obj_Lock(Obj);
 	
 		Obj->Graphic_Data.width = W;
-		Obj->Graphic_Data.operate_tpye = OPT_CHANGE;
+		Judge_Graphic_Obj_Apply_Opt(Obj,OPT_CHANGE);
 	
 		Judge_Graphic_Obj_Unlock(Obj);
 }
@@ -522,10 +532,9 @@ void Judge_Graphic_Obj_Set_Line_Width(Judge_Graphic_Obj_t* Obj,uint32_t W)
 void Judge_Graphic_Obj_Del(Judge_Graphic_Obj_t* Obj)
 {
 		Judge_Assert(Obj);
-		//锁定图形对象，直到对象被删除
 		Judge_Graphic_Obj_Lock(Obj);
-		
-		Obj->Graphic_Data.operate_tpye = OPT_DELETE;
+		Judge_Graphic_Obj_Apply_Opt(Obj,OPT_DELETE);
+		Judge_Graphic_Obj_Unlock(Obj);
 }
 /********图形创建函数**********/
 
@@ -538,14 +547,23 @@ Judge_Graphic_Obj_t* Judge_Graphic_Ellipse_Create(uint32_t Cx,uint32_t Cy,uint32
 		Ellipse->Graphic_Data.graphic_union.graphic_data.end_x = (uint32_t)Cx + Ra/2;
 		Ellipse->Graphic_Data.graphic_union.graphic_data.end_y = (uint32_t)Cy + Rb/2;	
 		Ellipse->Graphic_Data.width = W;
-		Ellipse->Graphic_Data.operate_tpye = OPT_ADD;
+	
+		Judge_Graphic_Obj_Apply_Opt(Ellipse,OPT_ADD);
+		Judge_Graphic_Obj_Unlock(Ellipse);
 		return  Ellipse;
 }
 
 Judge_Graphic_Obj_t* Judge_Graphic_Circle_Create(uint32_t Cx,uint32_t Cy,uint32_t R,uint32_t W)
 {
-		Judge_Graphic_Obj_t* Circle = Judge_Graphic_Ellipse_Create(Cx,Cy,R,R,W);
+		Judge_Graphic_Obj_t* Circle = Judge_Graphic_Obj_Init();
 		Circle->Graphic_Data.graphic_tpye = CIRCLE;
+		Circle->Graphic_Data.start_x = Cx;
+		Circle->Graphic_Data.start_y = Cy;
+		Circle->Graphic_Data.graphic_union.graphic_data.radius = R;
+		Circle->Graphic_Data.width = W;
+	
+		Judge_Graphic_Obj_Apply_Opt(Circle,OPT_ADD);
+		Judge_Graphic_Obj_Unlock(Circle);
 		return Circle;
 }
 
@@ -558,7 +576,9 @@ Judge_Graphic_Obj_t* Judge_Graphic_Line_Create(uint32_t X1,uint32_t Y1,uint32_t 
 		Line->Graphic_Data.graphic_union.graphic_data.end_x = X2;
 		Line->Graphic_Data.graphic_union.graphic_data.end_y = Y2;	
 		Line->Graphic_Data.width = W;
-		Line->Graphic_Data.operate_tpye = OPT_ADD;
+	
+		Judge_Graphic_Obj_Apply_Opt(Line,OPT_ADD);
+		Judge_Graphic_Obj_Unlock(Line);
 		return Line;
 }
 
@@ -571,7 +591,9 @@ Judge_Graphic_Obj_t* Judge_Graphic_Rect_Create(uint32_t X1,uint32_t Y1,uint32_t 
 		Rect->Graphic_Data.graphic_union.graphic_data.end_x = X2;
 		Rect->Graphic_Data.graphic_union.graphic_data.end_y = Y2;	
 		Rect->Graphic_Data.width = W;
-		Rect->Graphic_Data.operate_tpye = OPT_ADD;
+	
+		Judge_Graphic_Obj_Apply_Opt(Rect,OPT_ADD);
+		Judge_Graphic_Obj_Unlock(Rect);
 		return Rect;
 }
 
@@ -586,7 +608,9 @@ Judge_Graphic_Obj_t* Judge_Graphic_Arc_Create(uint32_t A1,uint32_t A2,uint32_t C
 		Arc->Graphic_Data.graphic_union.graphic_data.end_x = Cx + R/2;
 		Arc->Graphic_Data.graphic_union.graphic_data.end_y = Cy + R/2;
 		Arc->Graphic_Data.width = W;
-		Arc->Graphic_Data.operate_tpye = OPT_ADD;
+	
+		Judge_Graphic_Obj_Apply_Opt(Arc,OPT_ADD);
+		Judge_Graphic_Obj_Unlock(Arc);
 		return Arc;
 }
 
@@ -599,7 +623,9 @@ Judge_Graphic_Obj_t* Judge_Graphic_Float_Create(uint32_t X,uint32_t Y,uint32_t F
 		Float->Graphic_Data.start_angle = Font_Size;
 		Float->Graphic_Data.end_angle = 3;
 		Float->Graphic_Data.width = Font_Size/10;
-		Float->Graphic_Data.operate_tpye = OPT_ADD;
+	
+		Judge_Graphic_Obj_Apply_Opt(Float,OPT_ADD);
+		Judge_Graphic_Obj_Unlock(Float);
 		return Float;
 }
 
@@ -611,7 +637,9 @@ Judge_Graphic_Obj_t* Judge_Graphic_Integer_Create(uint32_t X,uint32_t Y,uint32_t
 		Int->Graphic_Data.start_y = Y;
 		Int->Graphic_Data.start_angle = Font_Size;
 		Int->Graphic_Data.width = Font_Size/10;
-		Int->Graphic_Data.operate_tpye = OPT_ADD;
+	
+		Judge_Graphic_Obj_Apply_Opt(Int,OPT_ADD);
+		Judge_Graphic_Obj_Unlock(Int);
 		return Int;
 }
 
@@ -632,24 +660,26 @@ Judge_Graphic_Obj_t* Judge_Graphic_Character_Create(uint32_t X,uint32_t Y,uint32
 		Character->Graphic_Data.width = Font_Size/10;
 		memcpy(Character_Buff,Str,Character_Len);
 		Character->Ext_Data = Character_Buff;
-		Character->Graphic_Data.operate_tpye = OPT_ADD;
+	
+		Judge_Graphic_Obj_Apply_Opt(Character,OPT_ADD);
+		Judge_Graphic_Obj_Unlock(Character);
 		return Character;
 }
 
-static void Judge_Graphic_Obj_Del_Check(Judge_Graphic_Obj_t* Obj)
-{
-		Judge_Assert(Obj);
-		if(Obj->Graphic_Data.operate_tpye == OPT_DELETE)
-		{
-			if(Obj->Ext_Data)
-				vPortFree(Obj->Ext_Data);
-			vPortFree(Obj);
-		}
-		else
-		{
-				Obj->Graphic_Data.operate_tpye = OPT_NONE;
-		}
-}
+//static void Judge_Graphic_Obj_Del_Check(Judge_Graphic_Obj_t* Obj)
+//{
+//		Judge_Assert(Obj);
+//		if(Obj->Graphic_Data.operate_tpye == OPT_DELETE)
+//		{
+//			if(Obj->Ext_Data)
+//				vPortFree(Obj->Ext_Data);
+//			vPortFree(Obj);
+//		}
+//		else
+//		{
+//				Obj->Graphic_Data.operate_tpye = OPT_NONE;
+//		}
+//}
 
 
 void Judge_Graphic_Init()
@@ -667,48 +697,29 @@ typedef __packed struct
 		
 }Judge_Graphic_Obj_To_Send_t;
 
-static void Judge_Graphic_Obj_Prepare_To_Send(Judge_Graphic_Obj_t* Obj,Judge_Graphic_Obj_To_Send_t* Graphic_Obj_To_Send)
-{
-		if(Obj->Graphic_Data.graphic_tpye==CHARACTER&&Graphic_Obj_To_Send->Num_Of_Character_To_Send==0)
-		{
-				Graphic_Obj_To_Send->Character_To_Send = Obj;
-				Graphic_Obj_To_Send->Num_Of_Character_To_Send = 1;
-		}
-		else if(Obj->Graphic_Data.graphic_tpye!=CHARACTER&&Graphic_Obj_To_Send->Num_Of_CommonObj_To_Send<7)
-		{
-				Graphic_Obj_To_Send->CommonObj_To_Send[Graphic_Obj_To_Send->Num_Of_CommonObj_To_Send++]=Obj;
-		}
-}
-
 int8_t Judge_Graphic_Obj_Iterator(ListItem_t* ListItem,void* User_Data1,void* User_Data2)
 {
 		Judge_Graphic_Obj_t* Obj = (Judge_Graphic_Obj_t*)(ListItem);
 		Judge_Graphic_Obj_To_Send_t* Graphic_Obj_To_Send = (Judge_Graphic_Obj_To_Send_t*)User_Data1;
 		//锁住图形对象
-		//Judge_Graphic_Obj_Lock(Obj);
-		//判断图形对象是否被锁定
-		if(Judge_Graphic_Obj_Poll(Obj)==pdFALSE)
+		Judge_Graphic_Obj_Lock(Obj);
+		//如果操作不是空操作，那么加入到发送缓冲区内，不解锁图形对象
+		if(Obj->Graphic_Data.operate_tpye!=OPT_NONE)
 		{
-				//如果被锁定，判断图形操作是否为添加或者删除
-				if(Obj->Graphic_Data.operate_tpye==OPT_ADD)
+				if(Obj->Graphic_Data.graphic_tpye==CHARACTER&&Graphic_Obj_To_Send->Num_Of_Character_To_Send==0)
 				{
-						Judge_Graphic_Obj_Prepare_To_Send(Obj,Graphic_Obj_To_Send);
+						Graphic_Obj_To_Send->Character_To_Send = Obj;
+						Graphic_Obj_To_Send->Num_Of_Character_To_Send = 1;
 				}
-				else if(Obj->Graphic_Data.operate_tpye==OPT_DELETE)
+				else if(Obj->Graphic_Data.graphic_tpye!=CHARACTER&&Graphic_Obj_To_Send->Num_Of_CommonObj_To_Send<7)
 				{
-						Judge_Graphic_Obj_Prepare_To_Send(Obj,Graphic_Obj_To_Send);
+						Graphic_Obj_To_Send->CommonObj_To_Send[Graphic_Obj_To_Send->Num_Of_CommonObj_To_Send++]=Obj;
 				}
-				else
-				{
-						//锁定图形对象，如果不是空操作，就不会解锁
-						Judge_Graphic_Obj_Lock(Obj);
-						if(Obj->Graphic_Data.graphic_tpye==OPT_CHANGE)
-						{
-								Judge_Graphic_Obj_Prepare_To_Send(Obj,Graphic_Obj_To_Send);
-						}
-						else
-								Judge_Graphic_Obj_Unlock(Obj);
-				}
+		}
+		//否则解锁图形对象
+		else
+		{
+				Judge_Graphic_Obj_Unlock(Obj);
 		}
 		
 		//如果两个发送缓冲区都满了，那么停止遍历，剩下的下次遍历
@@ -807,6 +818,7 @@ static void Judge_Graphic_Obj_Send(Judge_Graphic_Obj_To_Send_t* Graphic_Obj_To_S
 								Graphic_Obj_To_Send->CommonObj_To_Send[i]->Graphic_Data.operate_tpye = OPT_NONE;
 								Judge_Graphic_Obj_Unlock(Graphic_Obj_To_Send->CommonObj_To_Send[i]);
 							}
+							
 						}
 						else
 						{

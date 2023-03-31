@@ -39,24 +39,17 @@ void Start_Task(void *pvParameters)
 		//第二阶段初始化：创建基础任务
 	
 		create_gui_control_task();
-	
 		Create_Data_Task();
-	
 		Create_Judge_Task();
 	
 		//第三阶段初始化：创建任务
 		taskENTER_CRITICAL();
 		
 	  Create_User_task();
-		
 		Create_IMU_Task();	
-	
-		Create_Shoot_Task();			
-
+		Create_Shoot_Task();
 		Create_Gimbal_Task();	
-
 		Create_Chassis_task();	
-
 		create_supercap_task();
 	
     vTaskDelete(StartTask_Handler); //删除开始任务

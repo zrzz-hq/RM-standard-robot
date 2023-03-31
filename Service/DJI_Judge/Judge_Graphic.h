@@ -76,10 +76,18 @@ typedef __packed struct
 	}graphic_union;
 }graphic_data_struct_t;
 
+//typedef struct
+//{
+//	uint8_t Add_Flag:1;
+//	uint8_t Del_Flag:1;
+//	uint8_t Change_Flag:1;
+//}Judge_Graphic_Obj_Flag_t;
+
 typedef struct
 {
 		ListItem_t ListItem;
 		SemaphoreHandle_t Graphic_Obj_Mutex;
+//		Judge_Graphic_Obj_Flag_t Graphic_Obj_Flag;
 		graphic_data_struct_t Graphic_Data;
 		uint8_t* Ext_Data;
 }Judge_Graphic_Obj_t;
