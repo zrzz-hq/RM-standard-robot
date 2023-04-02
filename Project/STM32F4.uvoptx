@@ -162,9 +162,9 @@
         <Bp>
           <Number>0</Number>
           <Type>0</Type>
-          <LineNumber>826</LineNumber>
+          <LineNumber>778</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134243484</Address>
+          <Address>134243942</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
@@ -173,71 +173,7 @@
           <BreakIfRCount>1</BreakIfRCount>
           <Filename>C:\Users\endurance\Desktop\3_5_姝ュ叺浠ｇ爜\Service\DJI_Judge\Judge_Graphic.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\STM32F4\../Service/DJI_Judge/Judge_Graphic.c\826</Expression>
-        </Bp>
-        <Bp>
-          <Number>1</Number>
-          <Type>0</Type>
-          <LineNumber>765</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>134244040</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>C:\Users\endurance\Desktop\3_5_姝ュ叺浠ｇ爜\Service\DJI_Judge\Judge_Graphic.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\STM32F4\../Service/DJI_Judge/Judge_Graphic.c\765</Expression>
-        </Bp>
-        <Bp>
-          <Number>2</Number>
-          <Type>0</Type>
-          <LineNumber>777</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>0</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>0</BreakIfRCount>
-          <Filename>..\Service\DJI_Judge\Judge_Graphic.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression></Expression>
-        </Bp>
-        <Bp>
-          <Number>3</Number>
-          <Type>0</Type>
-          <LineNumber>837</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>0</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>0</BreakIfRCount>
-          <Filename>..\Service\DJI_Judge\Judge_Graphic.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression></Expression>
-        </Bp>
-        <Bp>
-          <Number>4</Number>
-          <Type>0</Type>
-          <LineNumber>839</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>0</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>0</BreakIfRCount>
-          <Filename>..\Service\DJI_Judge\Judge_Graphic.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression></Expression>
+          <Expression>\\STM32F4\../Service/DJI_Judge/Judge_Graphic.c\778</Expression>
         </Bp>
       </Breakpoint>
       <WatchWindow1>

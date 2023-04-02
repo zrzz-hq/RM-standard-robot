@@ -19,16 +19,15 @@
 #include "task.h"
 #include "Judge_Graphic.h"
 static TaskHandle_t UserTask_Handler;
+Judge_Graphic_Obj_t* Circle1;
 
 void Test()
 {
-		Judge_Graphic_Circle_Create(100,100,10,2);
-		Judge_Graphic_Circle_Create(200,200,10,2);
-		Judge_Graphic_Circle_Create(300,300,10,2);
-		Judge_Graphic_Circle_Create(400,400,10,2);
-		Judge_Graphic_Circle_Create(500,500,10,2);
-		Judge_Graphic_Circle_Create(600,600,10,2);
+		Circle1=Judge_Graphic_Circle_Create(600,600,50,10);
 }
+
+uint16_t x = 0;
+uint16_t y = 0;
 
 void UserTask(void *pvParameters)
 {
@@ -36,7 +35,13 @@ void UserTask(void *pvParameters)
 	Test();
 	while(1)
 	{
-		
+		Judge_Graphic_Obj_Set_Center_X(Circle1,x++);
+		Judge_Graphic_Obj_Set_Center_Y(Circle1,y++);
+		if(x==2000)
+			x = 0;
+		if(y==2000)
+			y = 0;
+		//Judge_Graphic_Obj_Set_Height(Circle1,300);
 		LED_GREEN_ON();
 		vTaskDelay(500);
 		LED_GREEN_OFF();

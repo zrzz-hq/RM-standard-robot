@@ -296,11 +296,16 @@ void Judge_Usart_DMA_Send(uint32_t Size)
 uint16_t Generate_Target_ID(Judge_Student_Data_Target_t Data_Target)
 {
 		uint16_t Robot_ID = Judge_Data.DJI_Judge_Info.Judge_game_robot_status.robot_id;
-		uint8_t Robot_Role = Robot_ID/100;//红方0，蓝方1
-		uint16_t Target_ID;
+		uint16_t Robot_Role = Robot_ID/100;//红方0，蓝方1
+		uint16_t Robot_Type = Robot_ID%100;
+		uint16_t Target_ID = 0;
 		if(Data_Target==Target_Client)
 		{
-			Target_ID = Robot_ID%100 + Robot_Role?0x164:0x100;
+			Target_ID = Robot_Type;
+			if(Robot_Role)
+				Target_ID+=0x164;
+			else
+				Target_ID+=0x100;
 		}
 		else
 		{

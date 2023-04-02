@@ -29,6 +29,7 @@ static Judge_Graphic_Obj_t* Judge_Graphic_Obj_Init()
 	
 		Judge_Graphic_Obj_t* Obj = pvPortMalloc(sizeof(Judge_Graphic_Obj_t));
 		Judge_Assert(Obj);
+		memset(Obj,0,sizeof(Judge_Graphic_Obj_t));
 		vListInitialiseItem((ListItem_t*)Obj);
 	
 		Obj->Graphic_Data.graphic_name = DJI_Judge_Graphic.Judge_Obj_Counter++;
